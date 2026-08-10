@@ -1012,6 +1012,12 @@ mx_envs.override_vllm_env(
     "v2 model runner is still under development and not fully tested on Maca platform, disable it by default",
 )
 
+mx_envs.override_vllm_env(
+    "VLLM_USE_DEEP_GEMM_E8M0",
+    False,
+    "USE_DEEP_GEMM_E8M0 default to false on Maca platform",
+)
+
 
 # --------------------------------------------------
 # Note: vllm_metax currently does not support third-party

@@ -180,7 +180,6 @@ def select_fp8_moe_backend(
                 logger.info_once(_make_log_backend(backend))
                 return backend, k_cls
             else:
-                print(_make_log_unsupported(backend, reason))
                 logger.debug_once(_make_log_unsupported(backend, reason))
 
     raise NotImplementedError(
