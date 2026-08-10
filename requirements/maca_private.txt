@@ -27,9 +27,13 @@ mctlassEx==0.1.1+metax3.8.0.7torch2.10
 rotary_emb==0.1+metax3.8.0.7torch2.10
 xentropy_cuda_lib==0.1+metax3.8.0.7torch2.10
 
+# mcpy==3.5.3.3
 
-# deep_gemm==0.0.1
+deep_ep==1.0.0+metax3.8.0.8torch2.10
+deep_gemm==0.1.0+maca3.8.0.4
+lmcache==0.4.6+maca3.8.0.5
+nixl==1.0.0+maca3.8.0.5
 
-# mcoplib==0.4.2+maca3.5.3.20.torch2.10
+mcoplib==0.4.8+maca3.8.0.25.torch2.10
 
 # uv pip install -r requirements/maca.txt -c requirements/constraints.txt  --index-strategy unsafe-best-match --extra-index-url https://repos.metax-tech.com/r/maca-pypi/simple --trusted-host repos.metax-tech.com --dry-run
