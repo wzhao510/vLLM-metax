@@ -666,7 +666,7 @@ def mctlassEx_fused_moe_w8a8_fp8_get_kernel_m(
     if block_shape is not None:
         kernel_m_kwargs.update(
             is_blockwise=True,
-            group_size=block_shape[0],
+            group_size=block_shape[1],
         )
     return mctlass_moe_gemm.get_kernel_m(
         a,
@@ -709,7 +709,7 @@ def mctlassEx_fused_moe_w8a8_fp8_gemm(
         b_scales = b_scales.transpose(1, 2).contiguous()
         fp8_kwargs.update(
             is_blockwise=True,
-            group_size=block_shape[0],
+            group_size=block_shape[1],
             is_scale_a_1d=True,
             is_scale_b_1d=False,
             scale_a_layout="m-major",

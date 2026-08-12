@@ -312,35 +312,29 @@ def fused_moe_kernel_gptq_awq(
 # ┌------------------------  Metax Modification -------------------------┐
 @triton.heuristics(
     {
-        "UPGRADE": lambda args: (
-            math.ceil(
-                (args["EM"] * args["N"]) / (args["BLOCK_SIZE_M"] * args["BLOCK_SIZE_N"])
-            ).bit_length()
-            > 31
-        ),
+        "UPGRADE": lambda args: math.ceil(
+            (args["EM"] * args["N"]) / (args["BLOCK_SIZE_M"] * args["BLOCK_SIZE_N"])
+        ).bit_length()
+        > 31,
     }
 )
 @triton.heuristics(
     {
         "UPGRADE_A_OFFS": lambda args: (
-            (
-                args["num_valid_tokens"] // args["top_k"] * args["stride_am"]
-                + args["BLOCK_SIZE_K"] * args["stride_ak"]
-            ).bit_length()
-            > 31
-        ),
+            args["num_valid_tokens"] // args["top_k"] * args["stride_am"]
+            + args["BLOCK_SIZE_K"] * args["stride_ak"]
+        ).bit_length()
+        > 31,
     }
 )
 @triton.heuristics(
     {
         "UPGRADE_B_OFFS": lambda args: (
-            (
-                (args["E"] - 1) * args["stride_be"]
-                + (args["N"] - 1) * args["stride_bn"]
-                + (args["K"] - 1) * args["stride_bk"]
-            ).bit_length()
-            > 31
-        ),
+            (args["E"] - 1) * args["stride_be"]
+            + (args["N"] - 1) * args["stride_bn"]
+            + (args["K"] - 1) * args["stride_bk"]
+        ).bit_length()
+        > 31,
     }
 )
 # └------------------------- Metax Modification -------------------------┘
@@ -2206,7 +2200,7 @@ def fused_experts_impl(
             # -----------------------------------------------------------------
             # Metax Modification: for int8_w8a8
             and not (
-                (use_int8_w8a8 or use_int4_w4a8 or use_int4_w4a16)
+                (use_int8_w8a8 or use_int4_w4a8 or use_int4_w4a16 or use_fp8_w8a8)
                 and mx_envs.MACA_VLLM_ENABLE_MCTLASS_FUSED_MOE
             )
         )
