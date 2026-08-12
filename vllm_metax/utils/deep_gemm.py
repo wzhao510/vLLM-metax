@@ -93,11 +93,12 @@ def _missing(*_: Any, **__: Any) -> NoReturn:
 
 
 _grouped_impl: Callable[..., Any] | None = None
-_grouped_masked_impl: Callable[..., Any] | None = None
+_fp8_grouped_masked_impl: Callable[..., Any] | None = None
 _fp8_gemm_nt_impl: Callable[..., Any] | None = None
 _bf16_mqa_logits_impl: Callable[..., Any] | None = None
 _bf16_paged_mqa_logits_impl: Callable[..., Any] | None = None
 _get_num_blocks_paged_mqa_logits_metadata_impl: Callable[..., Any] | None = None
+_int8_grouped_masked_impl: Callable[..., Any] | None = None
 _int8_mqa_logits_impl: Callable[..., Any] | None = None
 _int8_paged_mqa_logits_impl: Callable[..., Any] | None = None
 _bf16_einsum: Callable[..., Any] | None = None
@@ -113,7 +114,7 @@ _transform_sf_into_required_layout_impl: Callable[..., Any] | None = None
 #   - bf16_paged_mqa_logits.
 def _lazy_init() -> None:
     """Import deep_gemm and resolve symbols on first use."""
-    global _grouped_impl, _grouped_masked_impl
+    global _grouped_impl, _fp8_grouped_masked_impl, _int8_grouped_masked_impl
     global _fp8_gemm_nt_impl
     global _bf16_mqa_logits_impl, _bf16_paged_mqa_logits_impl
     global _int8_mqa_logits_impl, _int8_paged_mqa_logits_impl
@@ -139,7 +140,7 @@ def _lazy_init() -> None:
         or _transform_sf_into_required_layout_impl is not None
         or _fp8_gemm_nt_impl is not None
         or _grouped_impl is not None
-        or _grouped_masked_impl is not None
+        or _fp8_grouped_masked_impl is not None
     ):
         return
 
@@ -176,7 +177,8 @@ def _lazy_init() -> None:
         _dg, "transform_sf_into_required_layout", None
     )
     _grouped_impl = getattr(_dg, "m_grouped_fp8_gemm_nt_contiguous", None)
-    _grouped_masked_impl = getattr(_dg, "fp8_m_grouped_gemm_nt_masked", None)
+    _fp8_grouped_masked_impl = getattr(_dg, "fp8_m_grouped_gemm_nt_masked", None)
+    _int8_grouped_masked_impl = getattr(_dg, "int8_m_grouped_gemm_nt_masked", None)
     DeepGemmQuantScaleFMT.init_oracle_cache()
 
 
@@ -529,9 +531,20 @@ def m_grouped_fp8_gemm_nt_contiguous(*args, **kwargs):
 
 def fp8_m_grouped_gemm_nt_masked(*args, **kwargs):
     _lazy_init()
-    if _grouped_masked_impl is None:
+    if _fp8_grouped_masked_impl is None:
         return _missing(*args, **kwargs)
-    return _grouped_masked_impl(*args, **kwargs)
+    return _fp8_grouped_masked_impl(*args, **kwargs)
+
+
+def int8_m_grouped_gemm_nt_masked(*args, **kwargs):
+    _lazy_init()
+    if _int8_grouped_masked_impl is None:
+        return _missing(*args, **kwargs)
+    return _int8_grouped_masked_impl(*args, **kwargs)
+
+
+def dummy():
+    pass
 
 
 __all__ = [

@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 
+from enum import Enum
+
 import torch
 
 import vllm.model_executor.layers.fused_moe.modular_kernel as mk
@@ -13,8 +15,6 @@ from vllm_metax.model_executor.layers.fused_moe.all2all_utils import (
 from vllm.model_executor.layers.fused_moe.config import (
     FusedMoEConfig,
     FusedMoEQuantConfig,
-    int8_w8a8_moe_quant_config,
-    int8_w8a16_moe_quant_config,
 )
 from vllm.model_executor.layers.quantization.utils.quant_utils import (
     QuantKey,
@@ -22,10 +22,43 @@ from vllm.model_executor.layers.quantization.utils.quant_utils import (
     kInt8StaticChannelSym,
 )
 
+from vllm_metax.patch.bugfix.int8_w8a8.int8_moe_config import (
+    int8_w8a16_moe_quant_config,
+    int8_w8a8_moe_quant_config,
+)
+
 from vllm.model_executor.layers.fused_moe.oracle.int8 import (
-    Int8MoeBackend,
     logger,
 )
+
+from vllm import envs
+
+
+class Int8MoeBackend(Enum):
+    TRITON = "TRITON"
+    DEEPGEMM = "DEEPGEMM"
+    BATCHED_DEEPGEMM = "BATCHED_DEEPGEMM"
+    BATCHED_TRITON = "BATCHED_TRITON"
+
+
+def convert_to_int8_moe_kernel_format(
+    int8_backend: Int8MoeBackend,
+    w13: torch.Tensor,
+    w2: torch.Tensor,
+    layer: torch.nn.Module | None = None,
+    w13_scale: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Convert INT8 MoE weights to backend-specific kernel format."""
+    if int8_backend == Int8MoeBackend.TRITON:
+        # TODO(Hank): prepare shape for triton experts
+        pass
+    elif int8_backend == Int8MoeBackend.BATCHED_TRITON:
+        # TODO(Hank): prepare shape for batched triton experts
+        pass
+    elif int8_backend == Int8MoeBackend.BATCHED_DEEPGEMM:
+        # TODO(Hank): prepare shape for batched deep_gemm experts
+        pass
+    return w13, w2
 
 
 def _get_priority_backends(
@@ -36,6 +69,8 @@ def _get_priority_backends(
     """
     _AVAILABLE_BACKENDS = [
         Int8MoeBackend.TRITON,
+        Int8MoeBackend.BATCHED_TRITON,
+        Int8MoeBackend.BATCHED_DEEPGEMM,
     ]
 
     return _AVAILABLE_BACKENDS
@@ -50,15 +85,28 @@ def backend_to_kernel_cls(
         )
 
         return [TritonExperts]
+    elif backend == Int8MoeBackend.BATCHED_TRITON:
+        from vllm_metax.model_executor.layers.fused_moe.experts.fused_batched_moe import (
+            BatchedTritonExperts,
+        )
 
+        return [BatchedTritonExperts]
+    elif backend == Int8MoeBackend.BATCHED_DEEPGEMM:
+        from vllm_metax.model_executor.layers.fused_moe.experts.batched_deep_gemm_moe import (
+            BatchedDeepGemmExperts,
+        )
+
+        return [BatchedDeepGemmExperts]
     else:
-        raise ValueError(f"Unknown Int8 MoE backend: {backend.value}")
+        raise ValueError(f"Unsupported Int8 MoE backend: {backend.value}")
 
 
 def map_int8_backend(runner_backend: MoEBackend) -> Int8MoeBackend:
     """Map user's MoEBackend to Int8MoeBackend."""
     mapping = {
         "triton": Int8MoeBackend.TRITON,
+        "batched_triton": Int8MoeBackend.BATCHED_TRITON,
+        "batched_deepgemm": Int8MoeBackend.BATCHED_DEEPGEMM,
     }
     if backend := mapping.get(runner_backend):
         return backend
@@ -107,6 +155,10 @@ def select_int8_moe_backend(
 
     def _return_or_raise(
         backend: Int8MoeBackend,
+        config: FusedMoEConfig,
+        weight_key: QuantKey | None,
+        activation_key: QuantKey | None,
+        activation_format: mk.FusedMoEActivationFormat,
     ) -> tuple[Int8MoeBackend, type[mk.FusedMoEExperts]]:
         for k_cls in backend_to_kernel_cls(backend):
             supported, reason = k_cls.is_supported_config(
@@ -121,7 +173,34 @@ def select_int8_moe_backend(
     runner_backend = config.moe_backend
     if runner_backend != "auto":
         requested_backend = map_int8_backend(runner_backend)
-        return _return_or_raise(requested_backend)
+        # For batched activation format, use batched variants if available.
+        if activation_format == mk.FusedMoEActivationFormat.BatchedExperts:
+            if requested_backend == Int8MoeBackend.DEEPGEMM:
+                requested_backend = Int8MoeBackend.BATCHED_DEEPGEMM
+            elif requested_backend == Int8MoeBackend.TRITON:
+                requested_backend = Int8MoeBackend.BATCHED_TRITON
+
+        return _return_or_raise(
+            requested_backend, config, weight_key, activation_key, activation_format
+        )
+
+    # Handle explicit DeepGEMM FP8 configuration.
+    if not envs.is_set("VLLM_USE_DEEP_GEMM"):
+        AVAILABLE_BACKENDS.remove(Int8MoeBackend.DEEPGEMM)
+        AVAILABLE_BACKENDS.remove(Int8MoeBackend.BATCHED_DEEPGEMM)
+    if envs.is_set("VLLM_USE_DEEP_GEMM") or envs.is_set("VLLM_MOE_USE_DEEP_GEMM"):
+        if not envs.VLLM_USE_DEEP_GEMM or not envs.VLLM_MOE_USE_DEEP_GEMM:
+            AVAILABLE_BACKENDS.remove(Int8MoeBackend.DEEPGEMM)
+            AVAILABLE_BACKENDS.remove(Int8MoeBackend.BATCHED_DEEPGEMM)
+        else:
+            backend = (
+                Int8MoeBackend.DEEPGEMM
+                if activation_format == mk.FusedMoEActivationFormat.Standard
+                else Int8MoeBackend.BATCHED_DEEPGEMM
+            )
+            return _return_or_raise(
+                backend, config, weight_key, activation_key, activation_format
+            )
 
     # Select kernels in order of backend.
     for backend in AVAILABLE_BACKENDS:
@@ -152,6 +231,9 @@ def make_int8_moe_quant_config(
     w1_bias: torch.Tensor | None = None,
     w2_bias: torch.Tensor | None = None,
     per_act_token_quant: bool = False,
+    gemm1_alpha: float | None = None,
+    gemm1_beta: float | None = None,
+    gemm1_clamp_limit: float | None = None,
 ) -> FusedMoEQuantConfig:
     if (a1_scale is None) != (a2_scale is None):
         raise ValueError("a1_scale and a2_scale must both be provided or both be None")
@@ -164,6 +246,11 @@ def make_int8_moe_quant_config(
             w2_scale=w2_scale,
             w1_zp=None,
             w2_zp=None,
+            w1_bias=w1_bias,
+            w2_bias=w2_bias,
+            gemm1_alpha=gemm1_alpha,
+            gemm1_beta=gemm1_beta,
+            gemm1_clamp_limit=gemm1_clamp_limit,
         )
 
     # remove the int8_w8a16 logic since dynamic per token int8_w8a8
@@ -176,6 +263,9 @@ def make_int8_moe_quant_config(
         w1_bias=w1_bias,
         w2_bias=w2_bias,
         per_act_token_quant=per_act_token_quant,
+        gemm1_alpha=gemm1_alpha,
+        gemm1_beta=gemm1_beta,
+        gemm1_clamp_limit=gemm1_clamp_limit,
     )
 
 
@@ -199,10 +289,7 @@ def make_int8_moe_kernel(
 
     logger.info_once("Using %s", prepare_finalize.__class__.__name__)
 
-    extra_kwargs = {}
-    if int8_backend == Int8MoeBackend.HUMMING:
-        assert layer is not None
-        extra_kwargs = {"layer": layer}
+    extra_kwargs = None
 
     # Create Experts.
     if prepare_finalize.activation_format == mk.FusedMoEActivationFormat.BatchedExperts:

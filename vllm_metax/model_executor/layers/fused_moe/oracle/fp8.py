@@ -148,6 +148,10 @@ def select_fp8_moe_backend(
             elif requested_backend == Fp8MoeBackend.TRITON:
                 requested_backend = Fp8MoeBackend.BATCHED_TRITON
 
+        return _return_or_raise(
+            requested_backend, config, weight_key, activation_key, activation_format
+        )
+
     # Handle explicit DeepGEMM FP8 configuration.
     if not envs.is_set("VLLM_USE_DEEP_GEMM"):
         AVAILABLE_BACKENDS.remove(Fp8MoeBackend.DEEPGEMM)

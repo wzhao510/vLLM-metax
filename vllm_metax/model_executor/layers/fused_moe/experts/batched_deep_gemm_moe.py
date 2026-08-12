@@ -17,12 +17,18 @@ from vllm.model_executor.layers.fused_moe.config import (
 from vllm.model_executor.layers.fused_moe.topk_weight_and_reduce import (
     TopKWeightAndReduceDelegate,
 )
-from vllm.model_executor.layers.fused_moe.utils import _resize_cache
+from vllm.model_executor.layers.fused_moe.utils import (
+    _resize_cache,
+    moe_kernel_quantize_input,
+    swiglu_limit_func,
+)
 from vllm.model_executor.layers.quantization.utils.quant_utils import (
     QuantKey,
     get_fp8_min_max,
     kFp8Dynamic128Sym,
     kFp8Static128BlockSym,
+    kInt8DynamicTokenSym,
+    kInt8StaticChannelSym,
 )
 from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
@@ -30,12 +36,38 @@ from vllm_metax.utils.deep_gemm import (
     DeepGemmQuantScaleFMT,
     fp8_m_grouped_gemm_nt_masked,
     get_mk_alignment_for_contiguous_layout,
+    int8_m_grouped_gemm_nt_masked,
     is_deep_gemm_e8m0_used,
     is_deep_gemm_supported,
 )
 from vllm.utils.math_utils import cdiv, round_up
 
 logger = init_logger(__name__)
+
+
+def _normalize_int8_scale_2d(
+    scale: torch.Tensor | None,
+    num_experts: int,
+    rows: int,
+    name: str,
+) -> torch.Tensor:
+    """Normalize per-token/per-channel INT8 scales for DeepGEMM."""
+    assert scale is not None, f"{name} must be provided"
+    assert scale.dtype == torch.float32, (
+        f"{name} must have dtype torch.float32, got {scale.dtype}"
+    )
+    assert scale.numel() == num_experts * rows, (
+        f"Invalid {name} shape {scale.shape}; expected {num_experts * rows} values"
+    )
+    valid_shapes = {
+        (num_experts, rows),
+        (num_experts, rows, 1),
+        (num_experts * rows, 1),
+    }
+    assert tuple(scale.shape) in valid_shapes, (
+        f"Invalid {name} layout {scale.shape}; expected one of {valid_shapes}"
+    )
+    return scale.contiguous().reshape(num_experts, rows)
 
 
 def scales_shape_stride_dtype(
@@ -507,14 +539,89 @@ class BatchedDeepGemmExperts(mk.FusedMoEExpertsModular):
             max_num_tokens=max_num_tokens,
             num_dispatchers=num_dispatchers,
         )
-        self.gemm1_clamp_limit = quant_config.gemm1_clamp_limit
+        self.gemm1_clamp_limit = (
+            quant_config.gemm1_clamp_limit
+            if quant_config.gemm1_clamp_limit is not None
+            else moe_config.swiglu_limit
+        )
+        self.gemm1_alpha = (
+            quant_config.gemm1_alpha
+            if quant_config.gemm1_alpha is not None
+            else (
+                moe_config.swiglu_alpha if moe_config.swiglu_alpha is not None else 1.0
+            )
+        )
+        self.gemm1_beta = (
+            quant_config.gemm1_beta
+            if quant_config.gemm1_beta is not None
+            else (moe_config.swiglu_beta if moe_config.swiglu_beta is not None else 0.0)
+        )
 
-        assert self.block_shape == get_mk_alignment_for_contiguous_layout()
-        assert self.quant_config.use_fp8_w8a8
+        self.is_fp8 = quant_config.use_fp8_w8a8
+        self.is_int8 = quant_config.use_int8_w8a8
+
+        if self.is_fp8 == self.is_int8:
+            raise ValueError(
+                "BatchedDeepGemmExperts requires exactly one of FP8 W8A8 or INT8 W8A8"
+            )
+
+        if self.is_fp8:
+            assert self.block_shape == get_mk_alignment_for_contiguous_layout()
+        else:
+            assert self.block_shape is None
+            assert self.per_act_token_quant
+            assert self.w1_scale is not None
+            assert self.w2_scale is not None
+            assert self.w1_zp is None and self.w2_zp is None
+            assert self.w1_bias is None and self.w2_bias is None
+            if moe_config.in_dtype != torch.bfloat16:
+                raise ValueError(
+                    "BatchedDeepGemmExperts INT8 kernels require bfloat16 "
+                    f"input/output, got {moe_config.in_dtype}"
+                )
+
+        if (
+            moe_config.activation == MoEActivation.SWIGLUSTEP
+            and self.gemm1_clamp_limit is None
+        ):
+            raise ValueError("SWIGLUSTEP requires swiglu_limit in moe_config")
 
     @staticmethod
     def activation_format() -> mk.FusedMoEActivationFormat:
         return mk.FusedMoEActivationFormat.BatchedExperts
+
+    @staticmethod
+    def is_supported_config(
+        cls: type[mk.FusedMoEExperts],
+        moe_config: FusedMoEConfig,
+        weight_key: QuantKey | None,
+        activation_key: QuantKey | None,
+        activation_format: mk.FusedMoEActivationFormat,
+    ) -> tuple[bool, str | None]:
+        int8_w8a8 = (weight_key, activation_key) == (
+            kInt8StaticChannelSym,
+            kInt8DynamicTokenSym,
+        )
+        if (
+            moe_config.activation == MoEActivation.SWIGLUSTEP
+            and moe_config.swiglu_limit is None
+        ):
+            return False, "kernel requires swiglu_limit for SWIGLUSTEP"
+        if int8_w8a8 and moe_config.in_dtype != torch.bfloat16:
+            return (
+                False,
+                f"kernel does not support {moe_config.in_dtype} input/output dtype",
+            )
+        if int8_w8a8 and moe_config.has_bias:
+            return False, "kernel does not support bias"
+
+        return mk.FusedMoEExperts.is_supported_config(
+            cls,
+            moe_config,
+            weight_key,
+            activation_key,
+            activation_format,
+        )
 
     @staticmethod
     def _supports_current_device() -> bool:
@@ -529,8 +636,11 @@ class BatchedDeepGemmExperts(mk.FusedMoEExpertsModular):
         weight_key: QuantKey | None,
         activation_key: QuantKey | None,
     ) -> bool:
-        SUPPORTED_W_A = [(kFp8Static128BlockSym, kFp8Dynamic128Sym)]
-        return (weight_key, activation_key) in SUPPORTED_W_A
+        supported_w_a = [
+            (kFp8Static128BlockSym, kFp8Dynamic128Sym),
+            (kInt8StaticChannelSym, kInt8DynamicTokenSym),
+        ]
+        return (weight_key, activation_key) in supported_w_a
 
     @staticmethod
     def _supports_activation(activation: MoEActivation) -> bool:
@@ -545,11 +655,50 @@ class BatchedDeepGemmExperts(mk.FusedMoEExpertsModular):
         DeepGemm supports packed ue8m0 activation scales on Blackwell-family
         GPUs (SM100 datacenter and SM120 consumer).
         """
-        return is_deep_gemm_e8m0_used()
+        return self.is_fp8 and is_deep_gemm_e8m0_used()
+
+    def workspace_dtype(self, act_dtype: torch.dtype) -> torch.dtype:
+        if self.is_int8:
+            # MetaX INT8 masked grouped GEMM only supports BF16 output.
+            return torch.bfloat16
+        return super().workspace_dtype(act_dtype)
 
     def finalize_weight_and_reduce_impl(self) -> mk.TopKWeightAndReduce:
         # Let PrepareAndFinalize::finalize() decide the impl.
         return TopKWeightAndReduceDelegate()
+
+    def activation(
+        self,
+        activation: MoEActivation,
+        output: torch.Tensor,
+        input: torch.Tensor,
+        clamp_limit: float | None = None,
+        alpha: float = 1.0,
+        beta: float = 0.0,
+    ) -> None:
+        if activation == MoEActivation.SILU and clamp_limit is not None:
+            swiglu_limit_func(output, input, float(clamp_limit))
+            return
+
+        if activation == MoEActivation.SWIGLUSTEP:
+            from vllm.model_executor.layers.activation import (
+                swiglustep_and_mul_triton,
+            )
+
+            assert clamp_limit is not None, (
+                "SWIGLUSTEP requires swiglu_limit in moe_config"
+            )
+            # Note: super().activation() call swiglustep_and_mul_triton() without
+            # limit argument, So we manually make the call.
+            # Remove this once it supported.
+            swiglustep_and_mul_triton(
+                output,
+                input,
+                limit=float(clamp_limit),
+            )
+        super().activation(
+            activation, output, input, clamp_limit=clamp_limit, alpha=alpha, beta=beta
+        )
 
     def workspace_shapes(
         self,
@@ -619,7 +768,53 @@ class BatchedDeepGemmExperts(mk.FusedMoEExpertsModular):
         workspace2: torch.Tensor,
         expert_tokens_meta: mk.ExpertTokensMetadata | None,
         apply_router_weight_on_input: bool,
-    ):
+    ) -> None:
+        if self.is_int8:
+            apply_impl = self.apply_int8
+        elif self.is_fp8:
+            apply_impl = self.apply_fp8
+        else:
+            raise NotImplementedError(
+                "BatchedDeepGemmExperts requires either FP8 W8A8 or INT8 W8A8"
+            )
+        apply_impl(
+            output,
+            hidden_states,
+            w1,
+            w2,
+            topk_weights,
+            topk_ids,
+            activation,
+            global_num_experts,
+            expert_map,
+            a1q_scale,
+            a2_scale,
+            workspace13,
+            workspace2,
+            expert_tokens_meta,
+            apply_router_weight_on_input,
+        )
+        return
+
+    def apply_fp8(
+        self,
+        output: torch.Tensor,
+        hidden_states: torch.Tensor,
+        w1: torch.Tensor,
+        w2: torch.Tensor,
+        topk_weights: torch.Tensor,
+        topk_ids: torch.Tensor,
+        activation: MoEActivation,
+        global_num_experts: int,
+        expert_map: torch.Tensor | None,
+        a1q_scale: torch.Tensor | None,
+        a2_scale: torch.Tensor | None,
+        workspace13: torch.Tensor,
+        workspace2: torch.Tensor,
+        expert_tokens_meta: mk.ExpertTokensMetadata | None,
+        apply_router_weight_on_input: bool,
+    ) -> None:
+        # Existing FP8 path.
         assert expert_tokens_meta is not None
         expert_num_tokens = expert_tokens_meta.expert_num_tokens
 
@@ -671,6 +866,126 @@ class BatchedDeepGemmExperts(mk.FusedMoEExpertsModular):
         fp8_m_grouped_gemm_nt_masked(
             (a2q, a2q_scale),
             (w2, self.w2_scale),
+            output,
+            expert_num_tokens,
+            expected_m,
+        )
+
+    def apply_int8(
+        self,
+        output: torch.Tensor,
+        hidden_states: torch.Tensor,
+        w1: torch.Tensor,
+        w2: torch.Tensor,
+        topk_weights: torch.Tensor,
+        topk_ids: torch.Tensor,
+        activation: MoEActivation,
+        global_num_experts: int,
+        expert_map: torch.Tensor | None,
+        a1q_scale: torch.Tensor | None,
+        a2_scale: torch.Tensor | None,
+        workspace13: torch.Tensor,
+        workspace2: torch.Tensor,
+        expert_tokens_meta: mk.ExpertTokensMetadata | None,
+        apply_router_weight_on_input: bool,
+    ) -> None:
+        assert expert_tokens_meta is not None
+        expert_num_tokens = expert_tokens_meta.expert_num_tokens
+
+        assert hidden_states.ndim == 3
+        assert hidden_states.dtype == torch.int8
+        assert w1.dtype == torch.int8 and w2.dtype == torch.int8
+        assert w1.ndim == 3 and w2.ndim == 3
+        assert hidden_states.is_contiguous()
+        assert w1.is_contiguous() and w2.is_contiguous()
+        assert w1.device == hidden_states.device and w2.device == hidden_states.device
+        assert expert_num_tokens.dtype == torch.int32
+        assert expert_num_tokens.ndim == 1
+        assert expert_num_tokens.is_contiguous()
+        assert expert_num_tokens.device == hidden_states.device
+        assert a2_scale is None, "Dynamic per-token INT8 quantization has no a2 scale"
+
+        E, max_num_tokens, N, K, _ = self.moe_problem_size(
+            hidden_states, w1, w2, topk_ids
+        )
+        activation_out_dim = self.adjust_N_for_activation(N, activation)
+
+        assert expert_num_tokens.shape == (E,)
+        assert w1.shape == (E, N, K)
+        assert w2.shape == (E, K, activation_out_dim)
+        assert output.shape == (E, max_num_tokens, K)
+        assert output.dtype == torch.bfloat16
+        assert workspace13.dtype == torch.bfloat16
+        assert workspace2.dtype == torch.bfloat16
+        assert output.is_contiguous()
+        assert workspace13.is_contiguous()
+        assert workspace2.is_contiguous()
+        assert output.device == hidden_states.device
+        assert workspace13.device == hidden_states.device
+        assert workspace2.device == hidden_states.device
+        assert a1q_scale is not None and a1q_scale.device == hidden_states.device
+        assert self.w1_scale is not None and self.w1_scale.device == w1.device
+        assert self.w2_scale is not None and self.w2_scale.device == w2.device
+
+        workspace1 = _resize_cache(workspace13, (E, max_num_tokens, N))
+        activation_out = _resize_cache(
+            workspace2,
+            (E, max_num_tokens, activation_out_dim),
+        )
+        assert workspace1.is_contiguous()
+        assert activation_out.is_contiguous()
+
+        a1_s = _normalize_int8_scale_2d(a1q_scale, E, max_num_tokens, "a1_scale")
+        w1_s = _normalize_int8_scale_2d(self.w1_scale, E, N, "w1_scale")
+
+        expected_m = self.estimate_expected_m(
+            global_num_experts=global_num_experts,
+            max_tokens_per_expert=max_num_tokens,
+            topk=topk_ids.size(-1),
+        )
+
+        # Masked grouped GEMM only writes valid token rows. Clear the shared
+        # workspace so activation/quantization over the fixed graph shape sees
+        # deterministic zeros in padding rows.
+        workspace1.zero_()
+        int8_m_grouped_gemm_nt_masked(
+            (hidden_states, a1_s),
+            (w1, w1_s),
+            workspace1,
+            expert_num_tokens,
+            expected_m,
+        )
+
+        workspace1_flat = workspace1.view(-1, N)
+        activation_out_flat = activation_out.view(-1, activation_out_dim)
+        self.activation(
+            activation,
+            activation_out_flat,
+            workspace1_flat,
+            clamp_limit=self.gemm1_clamp_limit,
+            alpha=self.gemm1_alpha,
+            beta=self.gemm1_beta,
+        )
+
+        a2q, a2q_scale = moe_kernel_quantize_input(
+            activation_out,
+            None,
+            torch.int8,
+            per_act_token_quant=True,
+            block_shape=None,
+        )
+        assert a2q_scale is not None
+        assert a2q.is_contiguous()
+        a2_s = _normalize_int8_scale_2d(a2q_scale, E, max_num_tokens, "a2_scale")
+        w2_s = _normalize_int8_scale_2d(self.w2_scale, E, K, "w2_scale")
+
+        # The final output aliases workspace13 in the modular kernel. GEMM1 is
+        # no longer needed after activation quantization, so it is safe to clear
+        # the output before GEMM2 for deterministic padding rows.
+        output.zero_()
+        int8_m_grouped_gemm_nt_masked(
+            (a2q, a2_s),
+            (w2, w2_s),
             output,
             expert_num_tokens,
             expected_m,
