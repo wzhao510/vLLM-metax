@@ -79,7 +79,7 @@ Build the plugin:
 Clone vllm project:
 
 ```bash 
-git clone  --depth 1 --branch releases/v0.26.0 https://github.com/vllm-project/vllm 
+git clone  --depth 1 --branch releases/v0.27.1 https://github.com/vllm-project/vllm 
 cd vllm
 ```
 

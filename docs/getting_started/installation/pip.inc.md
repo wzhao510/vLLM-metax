@@ -33,7 +33,7 @@
 
     ```bash
     python use_existing_pytorch.py
-    pip install -r requirements/build.txt
+    pip install -r requirements/build/cuda.txt
     VLLM_TARGET_DEVICE=empty pip install . --no-build-isolation
     ```
 # --8<-- [end:build-vllm]
