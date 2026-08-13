@@ -351,10 +351,11 @@ class MacaPlatformBase(Platform):
             tuned_dir_with_h = os.path.join(
                 str(_FUSED_MOE_CONFIGS_DIR), f"H={hidden_size}"
             )
-            mx_envs.override_vllm_env(
+            mx_envs.maybe_override_vllm_env(
                 "VLLM_TUNED_CONFIG_FOLDER",
                 tuned_dir_with_h,
                 f"set FusedMoE tuned config dir by hidden_size={hidden_size}",
+                forced=True,
             )
 
         # -------------------------------------------------------
@@ -991,28 +992,28 @@ MacaPlatform.log_warnings()
 
 # --------------------------------------------------
 # Note: Put all env Override here for Maca platform
-mx_envs.override_vllm_env(
+mx_envs.maybe_override_vllm_env(
     "VLLM_USE_FLASHINFER_SAMPLER",
     mx_envs.VLLM_METAX_USE_FLASHINFER_SAMPLER,
     "controlled by VLLM_METAX_USE_FLASHINFER_SAMPLER; disabled by default",
 )
-mx_envs.override_vllm_env(
+mx_envs.maybe_override_vllm_env(
     "VLLM_ENGINE_READY_TIMEOUT_S", 7200, "set timeout to 7200s for model loading"
 )
 
-mx_envs.override_vllm_env(
+mx_envs.maybe_override_vllm_env(
     "VLLM_FLOAT32_MATMUL_PRECISION",
     "high",
     "set float32 matmul precision to high for better performance on Maca platform",
 )
 
-mx_envs.override_vllm_env(
+mx_envs.maybe_override_vllm_env(
     "VLLM_USE_V2_MODEL_RUNNER",
     False,
     "v2 model runner is still under development and not fully tested on Maca platform, disable it by default",
 )
 
-mx_envs.override_vllm_env(
+mx_envs.maybe_override_vllm_env(
     "VLLM_USE_DEEP_GEMM_E8M0",
     False,
     "USE_DEEP_GEMM_E8M0 default to false on Maca platform",

@@ -110,7 +110,9 @@ environment_variables: dict[str, Callable[[], Any]] = {
 
 
 # end-env-vars-definition
-def override_vllm_env(env_name: str, value: Any, reason: str | None) -> None:
+def maybe_override_vllm_env(
+    env_name: str, value: Any, reason: str | None, forced: bool = False
+) -> None:
     """
     Override a vLLM environment variable at runtime.
 
@@ -126,15 +128,39 @@ def override_vllm_env(env_name: str, value: Any, reason: str | None) -> None:
     if not isinstance(env_name, str):
         raise TypeError("env_name must be a string")
 
-    if env_name not in envs.environment_variables:
+    if env_name not in list(envs.environment_variables.keys()) and env_name not in list(
+        environment_variables.keys()
+    ):
         raise KeyError(f"{env_name} is not a recognized vLLM environment variable")
 
     logger.info(
-        "Plugin sets %s to %s. Reason: %s",
+        "vllm-metax would try to sets %s default to %s. Reason: %s",
         env_name,
         value,
         reason,
     )
+
+    # Skip if it was manually set by user
+    if ori_value := os.environ.get(env_name):
+        logger.warning(
+            "Detected %s was manually set to %s.",
+            env_name,
+            ori_value,
+        )
+        if not forced:
+            logger.warning(
+                "Not overriding %s to %s because it was manually set. "
+                "If you want to override it, set `forced=True`.",
+                env_name,
+                value,
+            )
+            return
+
+        logger.warning(
+            "Forced override is enabled. Overriding %s to %s.",
+            env_name,
+            value,
+        )
 
     # Replace the resolver with a callable that returns the desired value.
     envs.environment_variables[env_name] = lambda v=value: v
