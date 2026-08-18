@@ -34,6 +34,7 @@ from torch import nn
 from transformers import DeepseekV2Config, DeepseekV3Config
 
 import vllm._custom_ops as ops
+import vllm.envs as envs
 from vllm._aiter_ops import rocm_aiter_ops
 from vllm.compilation.decorators import support_torch_compile
 from vllm.config import CacheConfig, ParallelConfig, VllmConfig, get_current_vllm_config
@@ -50,13 +51,14 @@ from vllm.model_executor.layers.activation import SiluAndMul
 from vllm.model_executor.layers.attention import Attention, RSWAAttention
 from vllm.model_executor.layers.attention_layer_base import AttentionLayerBase
 from vllm.model_executor.layers.fused_moe import (
-    FusedMoE,
+    FusedMoEFactory,
     GateLinear,
     fused_moe_make_expert_params_mapping,
 )
 from vllm.model_executor.layers.layernorm import LayerNorm, RMSNorm
 from vllm.model_executor.layers.linear import (
     ColumnParallelLinear,
+    DCPGroupColumnParallelLinear,
     MergedColumnParallelLinear,
     QKVParallelLinear,
     ReplicatedLinear,
@@ -364,7 +366,7 @@ class DeepseekV2MoE(nn.Module):
                 prefix=f"{prefix}.shared_experts",
             )
 
-        self.experts = FusedMoE(
+        self.experts = FusedMoEFactory(
             shared_experts=self.shared_experts,
             gate=self.gate,
             num_experts=config.n_routed_experts,
@@ -743,30 +745,78 @@ class Indexer(nn.Module):
     ) -> torch.Tensor:
         q, _ = self.wq_b(qr)
         q = q.view(-1, self.n_head, self.head_dim)
-        q_pe, q_nope = torch.split(
-            q, [self.rope_dim, self.head_dim - self.rope_dim], dim=-1
-        )
-        # Fused wk + weights_proj: one GEMM, then split
-        kw, _ = self.wk_weights_proj(hidden_states)
-        k = kw[:, : self.head_dim]
-        weights = kw[:, self.head_dim :]
 
-        k = self.k_norm(k)
-        k_pe, k_nope = torch.split(
-            k, [self.rope_dim, self.head_dim - self.rope_dim], dim=-1
-        )
+        if current_platform.is_rocm() and self.is_inplace_rope:
+            # This path should works on all platform, will remove extra
+            # branches in the future
+            # This fast path relies on rotary_emb mutating q and k inplace.
+            # On ROCm, this is only valid for kernels used as custom ops.
+            # In pytorch-native rope for inductor fusion, rotated q/k tensors
+            # are not mutated inplace but returned as new tensors.
+            # Fused wk + weights_proj: one GEMM, then split
+            kw, _ = self.wk_weights_proj(hidden_states)
+            k = kw[:, : self.head_dim]
+            weights = kw[:, self.head_dim :]
 
-        q_pe, k_pe = rotary_emb(positions, q_pe, k_pe.unsqueeze(1))
-        # Note: RoPE (NeoX) can introduce extra leading dimensions during compilation
-        # so we need to reshape back to token-flattened shapes
-        q_pe = q_pe.reshape(-1, self.n_head, self.rope_dim)
-        k_pe = k_pe.reshape(-1, self.rope_dim)
+            k = self.k_norm(k)
 
-        # `rotary_emb` is shape-preserving; `q_pe` is already
-        # [num_tokens, n_head, rope_dim].
-        q = torch.cat([q_pe, q_nope], dim=-1)
-        # `k_pe` is [num_tokens, rope_dim] (MQA).
-        k = torch.cat([k_pe, k_nope], dim=-1)
+            rotary_emb(
+                positions, q[..., : self.rope_dim], k[..., : self.rope_dim].unsqueeze(1)
+            )
+        elif self.use_fused_indexer_q and q.dtype == torch.bfloat16:
+            # fused wk + weights_proj: one GEMM, then split
+            kw, _ = self.wk_weights_proj(hidden_states)
+            k = kw[:, : self.head_dim]
+            weights = kw[:, self.head_dim :]
+
+            k = self.k_norm(k)
+            k_pe, k_nope = torch.split(
+                k, [self.rope_dim, self.head_dim - self.rope_dim], dim=-1
+            )
+
+            q_fp8, weights = fused_indexer_q_rope_quant(
+                positions,
+                q,
+                rotary_emb.cos_sin_cache,
+                weights,
+                self.softmax_scale,
+                self.n_head_scale,
+                rotary_emb.is_neox_style,
+            )
+
+            # rotate only the MQA K
+            k_pe = k_pe.unsqueeze(1)
+            q_dummy = torch.empty_like(k_pe)
+            _, k_pe = rotary_emb(positions, q_dummy, k_pe)
+            k_pe = k_pe.reshape(-1, self.rope_dim)
+            k = torch.cat([k_pe, k_nope], dim=-1)
+
+            return self.indexer_op(hidden_states, q_fp8, k, weights)
+        else:
+            q_pe, q_nope = torch.split(
+                q, [self.rope_dim, self.head_dim - self.rope_dim], dim=-1
+            )
+            # Fused wk + weights_proj: one GEMM, then split
+            kw, _ = self.wk_weights_proj(hidden_states)
+            k = kw[:, : self.head_dim]
+            weights = kw[:, self.head_dim :]
+
+            k = self.k_norm(k)
+            k_pe, k_nope = torch.split(
+                k, [self.rope_dim, self.head_dim - self.rope_dim], dim=-1
+            )
+
+            q_pe, k_pe = rotary_emb(positions, q_pe, k_pe.unsqueeze(1))
+            # Note: RoPE (NeoX) can introduce extra leading dimensions during
+            # compilation so we need to reshape back to token-flattened shapes
+            q_pe = q_pe.reshape(-1, self.n_head, self.rope_dim)
+            k_pe = k_pe.reshape(-1, self.rope_dim)
+
+            # `rotary_emb` is shape-preserving; `q_pe` is already
+            # [num_tokens, n_head, rope_dim].
+            q = torch.cat([q_pe, q_nope], dim=-1)
+            # `k_pe` is [num_tokens, rope_dim] (MQA).
+            k = torch.cat([k_pe, k_nope], dim=-1)
 
         if self.vllm_config.attention_config.indexer_kv_dtype == "fp8":
             # we only quant q here since k quant is fused with cache insertion
@@ -801,17 +851,17 @@ def _try_load_fp8_int8_indexer_wk(
 ):
     """
     We fuse the WK and weights_proj projections, but in some checkpoints WK is stored
-    in FP8 with a separate weight_scale_inv, while weights_proj is stored in BF16.
-    Upcasting to BF16 during loading enables the fusion. This function loads the FP8 WK
-    weights and scale, and when both are available, dequantizes to BF16 and stores into
-    the fused wk_weights_proj.weight parameter.
+    in FP8 or INT8 with a separate scale, while weights_proj is stored in BF16.
+    Dequantizing WK to BF16 during loading enables the fusion. This function buffers
+    the quantized WK weight and scale, then stores the dequantized result in the fused
+    wk_weights_proj.weight parameter once both are available.
     """
     if "indexer.wk." not in name or "wk_weights" in name:
         return False  # Weight is not an isolated WK weight for the indexer, ignore.
     is_weight = name.endswith(".weight") and (tensor.dtype == torch.float8_e4m3fn or tensor.dtype == torch.int8)
     is_scale = "weight_scale_inv" in name or "weight_scale" in name
     if not is_weight and not is_scale:
-        return False  # WK is not in FP8 format, ignore.
+        return False  # WK is not in a supported quantized format, ignore.
     # Buffer this tensor (weight or scale) until both have arrived.
     layer_prefix = name.rsplit(".wk.", 1)[0]  # e.g. "model.layers.0.self_attn.indexer"
     fused_name = f"{layer_prefix}.wk_weights_proj.weight"
@@ -825,14 +875,19 @@ def _try_load_fp8_int8_indexer_wk(
     if "weight" not in entry or "scale" not in entry:
         return True  # still waiting for the other param
 
-    # We have both weight and scale: dequantize FP8 to BF16.
+    # We have both weight and scale: dequantize WK to BF16.
     weight_fp8, scale_inv = entry["weight"], entry["scale"]
     del buf[layer_prefix]
-    block_size = weight_fp8.shape[1] // scale_inv.shape[1]
-    if weight_fp8.dtype == torch.int8:
-        group_shape = GroupShape(1, block_size)
+    if scale_inv.ndim == 1:
+        # Per-channel scale: one scale per row of [out, in].
+        group_shape = GroupShape(1, weight_fp8.shape[1])
     else:
-        group_shape = GroupShape(block_size, block_size)
+        block_size = weight_fp8.shape[1] // scale_inv.shape[1]
+        if weight_fp8.dtype == torch.int8:
+            # INT8 quantization, not FP8
+            group_shape = GroupShape(1, block_size)
+        else:
+            group_shape = GroupShape(block_size, block_size)
     weight_bf16 = scaled_dequantize(
         weight_fp8,
         scale_inv,
@@ -959,6 +1014,7 @@ class DeepseekV2MLAAttention(nn.Module):
         topk_indices_buffer: torch.Tensor | None = None,
         input_size: int | None = None,
         reduce_results: bool = True,
+        non_causal_multi_token_decode: bool = False,
     ) -> None:
         super().__init__()
         self.hidden_size = hidden_size
@@ -998,9 +1054,17 @@ class DeepseekV2MLAAttention(nn.Module):
                 prefix=f"{prefix}.kv_a_proj_with_mqa",
             )
 
+        qrep_enabled = (
+            envs.VLLM_DCP_Q_REPLICATE
+            and vllm_config.parallel_config.decode_context_parallel_size > 1
+            and vllm_config.parallel_config.prefill_context_parallel_size <= 1
+        )
+        q_proj_cls = (
+            DCPGroupColumnParallelLinear if qrep_enabled else ColumnParallelLinear
+        )
         if self.q_lora_rank is not None:
             self.q_a_layernorm = RMSNorm(self.q_lora_rank, eps=config.rms_norm_eps)
-            self.q_b_proj = ColumnParallelLinear(
+            self.q_b_proj = q_proj_cls(
                 self.q_lora_rank,
                 self.num_heads * self.qk_head_dim,
                 bias=False,
@@ -1008,7 +1072,7 @@ class DeepseekV2MLAAttention(nn.Module):
                 prefix=f"{prefix}.q_b_proj",
             )
         else:
-            self.q_proj = ColumnParallelLinear(
+            self.q_proj = q_proj_cls(
                 proj_input_size,
                 self.num_heads * self.qk_head_dim,
                 bias=False,
@@ -1146,6 +1210,10 @@ class DeepseekV2MLAAttention(nn.Module):
             # the V1 proposer. A frozen True would leave the draft reading a
             # never-written topk buffer.
             skip_topk=_skip_topk and not is_mtp_layer,
+            non_causal_multi_token_decode=non_causal_multi_token_decode,
+            # Do not skip scoring for MTP layers: their top-k buffer may be
+            # reused by later draft iterations through index sharing.
+            allow_short_prefill_indexer_scoring_skip=not is_mtp_layer,
         )
 
     def forward(

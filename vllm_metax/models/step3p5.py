@@ -25,7 +25,7 @@ from vllm.logger import init_logger
 from vllm.model_executor.layers.activation import SiluAndMul, SwigluStepAndMul
 from vllm.model_executor.layers.attention import Attention
 from vllm.model_executor.layers.fused_moe import (
-    FusedMoE,
+    FusedMoEFactory,
     MoERunner,
     fused_moe_make_expert_params_mapping,
 )
@@ -48,8 +48,8 @@ from vllm.model_executor.model_loader.weight_utils import default_weight_loader
 from vllm.sequence import IntermediateTensors
 from vllm.v1.attention.backend import AttentionType
 
-from .interfaces import MixtureOfExperts, SupportsPP
-from .utils import (
+from vllm.model_executor.models.interfaces import MixtureOfExperts, SupportsPP
+from vllm.model_executor.models.utils import (
     AutoWeightsLoader,
     PPMissingLayer,
     WeightsMapper,
@@ -377,7 +377,7 @@ class FusedMoEBlock(nn.Module):
             quant_config=quant_config,
             prefix=f"{prefix}.share_expert",
         )
-        self.experts = FusedMoE(
+        self.experts = FusedMoEFactory(
             shared_experts=self.share_expert,
             gate=self.gate,
             num_experts=config.moe_num_experts,
@@ -406,7 +406,7 @@ class FusedMoEBlock(nn.Module):
                 hidden_states=hidden_states, router_logits=hidden_states
             )
         else:
-            # TODO(bnell): this gate could be moved into the FusedMoE?
+            # TODO(bnell): this gate could be moved into the MoERunner?
             router_logits, _ = self.gate(hidden_states)
             final_hidden_states = self.experts(
                 hidden_states=hidden_states, router_logits=router_logits
