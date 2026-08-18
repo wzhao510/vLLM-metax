@@ -29,11 +29,16 @@ from vllm.model_executor.layers.fused_moe.moe_align_block_size import (
     moe_align_block_size,
 )
 from vllm.model_executor.layers.fused_moe.utils import (
+    enable_swap_ab,
     moe_kernel_quantize_input,
+    resolve_moe_use_td,
+    warn_if_moe_use_td_ineffective,
 )
 from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
-from vllm.utils.torch_utils import direct_register_custom_op, is_torch_equal_or_newer
+from vllm.triton_utils.allocation import set_triton_allocator
+from vllm.utils.math_utils import next_power_of_2
+from vllm.utils.torch_utils import direct_register_custom_op
 
 from vllm.model_executor.layers.fused_moe.fused_moe import logger
 from .utils import get_config_dtype_str, initialize_staged_config
@@ -392,6 +397,8 @@ def fused_moe_kernel(
     use_int8_w8a16: tl.constexpr,
     per_channel_quant: tl.constexpr,
     HAS_BIAS: tl.constexpr,
+    SWAP_AB: tl.constexpr,
+    # Tensor-descriptor path for the A gather and B load in the K-loop.
     # ┌------------------------  Metax Modification -------------------------┐
     E,
     UPGRADE: tl.constexpr,
@@ -399,6 +406,7 @@ def fused_moe_kernel(
     UPGRADE_B_OFFS: tl.constexpr,
     FAST_F32_TO_BF16: tl.constexpr,
     # └------------------------- Metax Modification -------------------------┘
+    USE_TD: tl.constexpr = False,
 ):
     """
     Implements the fused computation for a Mixture of Experts (MOE) using
@@ -508,15 +516,42 @@ def fused_moe_kernel(
         offs_bn = (pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)) % N
     offs_k = pid_z * BLOCK_SIZE_K + tl.arange(0, BLOCK_SIZE_K)
     # └------------------------- Metax Modification -------------------------┘
-    a_ptrs = a_ptr + (
-        offs_token[:, None] // top_k * stride_am + offs_k[None, :] * stride_ak
-    )
-
-    b_ptrs = (
-        b_ptr
-        + off_experts * stride_be
-        + (offs_k[:, None] * stride_bk + offs_bn[None, :] * stride_bn)
-    )
+    # TD gather and the SWAP_AB accumulator layout are mutually exclusive.
+    tl.static_assert(not (USE_TD and SWAP_AB))
+    if USE_TD:
+        # ``tt.descriptor_gather`` requires block_shape[0] == 1 and i32 idx.
+        m_td = num_valid_tokens // top_k
+        a_desc = tl.make_tensor_descriptor(
+            base=a_ptr,
+            shape=(m_td, K),
+            strides=(stride_am, stride_ak),
+            block_shape=(1, BLOCK_SIZE_K),
+        )
+        b_desc = tl.make_tensor_descriptor(
+            base=b_ptr + off_experts * stride_be,
+            shape=(N, K),
+            strides=(stride_bn, stride_bk),
+            block_shape=(BLOCK_SIZE_N, BLOCK_SIZE_K),
+        )
+        gather_idx = (offs_token // top_k).to(tl.int32)
+    elif SWAP_AB:
+        a_ptrs = a_ptr + (
+            offs_k[:, None] * stride_ak + offs_token[None, :] // top_k * stride_am
+        )
+        b_ptrs = (
+            b_ptr
+            + off_experts * stride_be
+            + (offs_bn[:, None] * stride_bn + offs_k[None, :] * stride_bk)
+        )
+    else:
+        a_ptrs = a_ptr + (
+            offs_token[:, None] // top_k * stride_am + offs_k[None, :] * stride_ak
+        )
+        b_ptrs = (
+            b_ptr
+            + off_experts * stride_be
+            + (offs_k[:, None] * stride_bk + offs_bn[None, :] * stride_bn)
+        )
     if use_int8_w8a16:
         b_scale_ptrs = (
             b_scale_ptr + off_experts * stride_bse + offs_bn[None, :] * stride_bsn
@@ -553,21 +588,39 @@ def fused_moe_kernel(
     # We accumulate into a `[BLOCK_SIZE_M, BLOCK_SIZE_N]` block
     # of fp32 values for higher accuracy.
     # `accumulator` will be converted back to fp16 after the loop.
-    accumulator = tl.zeros(
-        (BLOCK_SIZE_M, BLOCK_SIZE_N), dtype=tl.int32 if use_int8_w8a8 else tl.float32
-    )
+    if SWAP_AB:
+        accumulator = tl.zeros(
+            (BLOCK_SIZE_N, BLOCK_SIZE_M),
+            dtype=tl.int32 if use_int8_w8a8 else tl.float32,
+        )
+    else:
+        accumulator = tl.zeros(
+            (BLOCK_SIZE_M, BLOCK_SIZE_N),
+            dtype=tl.int32 if use_int8_w8a8 else tl.float32,
+        )
     for k in range(0, tl.cdiv(K, BLOCK_SIZE_K * SPLIT_K)):
         # Load the next block of A and B, generate a mask by checking the
         # K dimension.
-        a = tl.load(
-            a_ptrs,
-            mask=token_mask[:, None]
-            & (offs_k[None, :] < K - k * BLOCK_SIZE_K * SPLIT_K),
-            other=0.0,
-        )
-        b = tl.load(
-            b_ptrs, mask=offs_k[:, None] < K - k * BLOCK_SIZE_K * SPLIT_K, other=0.0
-        )
+        if USE_TD:
+            a = a_desc.gather(gather_idx, k * BLOCK_SIZE_K * SPLIT_K)
+            b = b_desc.load([pid_n * BLOCK_SIZE_N, k * BLOCK_SIZE_K * SPLIT_K]).T
+        elif SWAP_AB:
+            a_mask = (offs_k[:, None] < K - k * BLOCK_SIZE_K * SPLIT_K) & token_mask[
+                None, :
+            ]
+            b_mask = offs_k[None, :] < K - k * BLOCK_SIZE_K * SPLIT_K
+            a = tl.load(a_ptrs, mask=a_mask, other=0.0)
+            b = tl.load(b_ptrs, mask=b_mask, other=0.0)
+        else:
+            a = tl.load(
+                a_ptrs,
+                mask=token_mask[:, None]
+                & (offs_k[None, :] < K - k * BLOCK_SIZE_K * SPLIT_K),
+                other=0.0,
+            )
+            b = tl.load(
+                b_ptrs, mask=offs_k[:, None] < K - k * BLOCK_SIZE_K * SPLIT_K, other=0.0
+            )
         # We accumulate along the K dimension.
         if use_int8_w8a16:
             accumulator = tl.dot(a, b.to(compute_type), acc=accumulator)
@@ -579,19 +632,28 @@ def fused_moe_kernel(
                     a_scale_ptrs + offs_ks * stride_ask, mask=token_mask, other=0.0
                 )
                 b_scale = tl.load(b_scale_ptrs + offs_ks * stride_bsk)
-
-                accumulator += tl.dot(a, b) * a_scale[:, None] * b_scale[None, :]
+                if SWAP_AB:
+                    accumulator += tl.dot(b, a) * b_scale[:, None] * a_scale[None, :]
+                else:
+                    accumulator += tl.dot(a, b) * a_scale[:, None] * b_scale[None, :]
             else:
                 if use_fp8_w8a8:
                     # acc used to enable fp8_fast_accum
-                    accumulator = tl.dot(a, b, acc=accumulator)
+                    if SWAP_AB:
+                        accumulator = tl.dot(b, a, acc=accumulator)
+                    else:
+                        accumulator = tl.dot(a, b, acc=accumulator)
                 else:
                     accumulator += tl.dot(a, b)
         else:
             accumulator += tl.dot(a, b)
-        # Advance the ptrs to the next K block.
-        a_ptrs += BLOCK_SIZE_K * stride_ak * SPLIT_K
-        b_ptrs += BLOCK_SIZE_K * stride_bk * SPLIT_K
+        if not USE_TD:
+            # Advance the ptrs to the next K block.
+            a_ptrs += BLOCK_SIZE_K * stride_ak * SPLIT_K
+            b_ptrs += BLOCK_SIZE_K * stride_bk * SPLIT_K
+
+    if SWAP_AB:
+        accumulator = tl.trans(accumulator, (1, 0))
 
     # Dequantization for supported quantization schemes:
     #   - int8_w8a16
@@ -860,6 +922,24 @@ def invoke_fused_moe_triton_kernel(
     assert topk_weights is None or topk_weights.stride(1) == 1
     assert sorted_token_ids is None or sorted_token_ids.stride(0) == 1
 
+    if use_fp8_w8a8:
+        SWAP_AB = enable_swap_ab(config["BLOCK_SIZE_M"], config["BLOCK_SIZE_N"])
+    else:
+        SWAP_AB = False
+
+    # Quantized weights always carry a B_scale (see the asserts below); key off
+    # that rather than enumerating quant flags, which misses w8a16-fp8/nvfp4/etc.
+    is_quantized = B_scale is not None
+    warn_if_moe_use_td_ineffective("TRITON", is_quantized=is_quantized)
+
+    # TD path is unvalidated under quantization; fall back to the pointer path.
+    use_td = resolve_moe_use_td() and not is_quantized
+    if use_td:
+        # The TD path builds a tensor descriptor inside the kernel, which
+        # requires a PyTorch-backed scratch allocator to be registered
+        # (Triton raises "no allocator was set" otherwise on CUDA).
+        set_triton_allocator(A.device)
+
     if use_fp8_w8a8 or use_int8_w8a8:
         assert B_scale is not None
         assert block_shape is None or triton.cdiv(
@@ -1003,6 +1083,19 @@ def invoke_fused_moe_triton_kernel(
         BLOCK_SIZE_K = config.pop("BLOCK_SIZE_K")
         if block_shape is not None:
             BLOCK_SIZE_K = min(BLOCK_SIZE_K, min(block_shape[0], block_shape[1]))
+    if use_td and A.size(1) % BLOCK_SIZE_K != 0:
+        # TD gather/load feeding tl.dot with a non-block-aligned K
+        # miscompiles (~74% of output elements wrong) on real HW;
+        # this is a compiler-codegen issue, not a Python-maskable
+        # boundary gap. Fall back to the pointer-arith path.
+        logger.warning_once(
+            "Disabling VLLM_TRITON_USE_TD for this MoE launch: K=%d is not "
+            "a multiple of BLOCK_SIZE_K=%d, which triggers a known "
+            "Triton tensor-descriptor + tl.dot miscompilation.",
+            A.size(1),
+            BLOCK_SIZE_K,
+        )
+        use_td = False
         # Triton kernel "fused_moe_kernel" has been maintained by mcoplib
         # since v0.18.0-dev.
         if mx_envs.USE_PRECOMPILED_KERNEL:
@@ -1096,6 +1189,8 @@ def invoke_fused_moe_triton_kernel(
                 naive_block_assignment=(sorted_token_ids is None),
                 HAS_BIAS=HAS_BIAS,
                 BLOCK_SIZE_K=BLOCK_SIZE_K,
+                SWAP_AB=SWAP_AB,
+                USE_TD=use_td,
                 # ┌------------------------  Metax Modification -------------------------┐
                 E=B.size(0),
                 FAST_F32_TO_BF16=True,
@@ -1398,7 +1493,6 @@ def get_moe_configs(
         "Using default MoE config. Performance might be sub-optimal! "
         "Config file not found at %s",
         ", ".join(config_file_paths),
-        scope="local",
     )
     return None
 
@@ -1561,7 +1655,7 @@ def get_default_config(
             "GROUP_SIZE_M": 1 if M <= 16 else 32,
             "SPLIT_K": 1,
             "num_warps": 4,
-            "num_stages": 3 if not current_platform.is_rocm() else num_stages_maca,
+            "num_stages": num_stages_maca,
         }
     elif dtype in ["int4_w4a16", "int8_w8a16"] and block_shape is not None:
         # moe wna16 kernels
@@ -1570,7 +1664,11 @@ def get_default_config(
         bit = 4 if dtype == "int4_w4a16" else 8
         use_moe_wna16_cuda = should_moe_wna16_use_cuda(M * topk, block_shape[1], E, bit)
         if use_moe_wna16_cuda:
-            config = {"BLOCK_SIZE_M": min(16, M), "SPLIT_K": 1}
+            config = {
+                "BLOCK_SIZE_M": min(16, next_power_of_2(M)),
+                "GROUP_SIZE_M": 1,
+                "SPLIT_K": 1,
+            }
         elif M <= 20:
             config = {"BLOCK_SIZE_M": 16, "GROUP_SIZE_M": 1, "SPLIT_K": 1}
         elif M <= 40:
@@ -1765,11 +1863,6 @@ direct_register_custom_op(
     op_func=inplace_fused_experts,
     mutates_args=["hidden_states"],
     fake_impl=inplace_fused_experts_fake,
-    tags=(
-        ()
-        if is_torch_equal_or_newer("2.7.0")
-        else (torch.Tag.needs_fixed_stride_order,)
-    ),
 )
 
 
@@ -1865,11 +1958,6 @@ direct_register_custom_op(
     op_func=outplace_fused_experts,
     mutates_args=[],
     fake_impl=outplace_fused_experts_fake,
-    tags=(
-        ()
-        if is_torch_equal_or_newer("2.7.0")
-        else (torch.Tag.needs_fixed_stride_order,)
-    ),
 )
 
 
@@ -2011,7 +2099,6 @@ def _get_config_quant_dtype(
     """
     if use_fp8_w8a8:
         return torch.float8_e4m3fn
-    # 这里我参照了上个版本的代码，但是我有点怀疑为什么这里return的是int8而不是int4
     elif use_int4_w4a8 or use_int8_w8a8:
         return torch.int8
 

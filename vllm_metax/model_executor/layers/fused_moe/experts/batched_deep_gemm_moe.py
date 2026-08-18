@@ -560,14 +560,9 @@ class BatchedDeepGemmExperts(mk.FusedMoEExpertsModular):
         self.is_fp8 = quant_config.use_fp8_w8a8
         self.is_int8 = quant_config.use_int8_w8a8
 
-        if self.is_fp8 == self.is_int8:
-            raise ValueError(
-                "BatchedDeepGemmExperts requires exactly one of FP8 W8A8 or INT8 W8A8"
-            )
-
         if self.is_fp8:
             assert self.block_shape == get_mk_alignment_for_contiguous_layout()
-        else:
+        elif self.is_int8:
             assert self.block_shape is None
             assert self.per_act_token_quant
             assert self.w1_scale is not None
@@ -579,6 +574,8 @@ class BatchedDeepGemmExperts(mk.FusedMoEExpertsModular):
                     "BatchedDeepGemmExperts INT8 kernels require bfloat16 "
                     f"input/output, got {moe_config.in_dtype}"
                 )
+        else:
+            raise ValueError("BatchedDeepGemmExperts only support FP8 or INT8 W8A8")
 
         if (
             moe_config.activation == MoEActivation.SWIGLUSTEP

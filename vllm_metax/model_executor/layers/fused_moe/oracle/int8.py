@@ -41,26 +41,6 @@ class Int8MoeBackend(Enum):
     BATCHED_TRITON = "BATCHED_TRITON"
 
 
-def convert_to_int8_moe_kernel_format(
-    int8_backend: Int8MoeBackend,
-    w13: torch.Tensor,
-    w2: torch.Tensor,
-    layer: torch.nn.Module | None = None,
-    w13_scale: torch.Tensor | None = None,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """Convert INT8 MoE weights to backend-specific kernel format."""
-    if int8_backend == Int8MoeBackend.TRITON:
-        # TODO(Hank): prepare shape for triton experts
-        pass
-    elif int8_backend == Int8MoeBackend.BATCHED_TRITON:
-        # TODO(Hank): prepare shape for batched triton experts
-        pass
-    elif int8_backend == Int8MoeBackend.BATCHED_DEEPGEMM:
-        # TODO(Hank): prepare shape for batched deep_gemm experts
-        pass
-    return w13, w2
-
-
 def _get_priority_backends(
     moe_config: FusedMoEConfig,
 ) -> list[Int8MoeBackend]:
@@ -184,14 +164,22 @@ def select_int8_moe_backend(
             requested_backend, config, weight_key, activation_key, activation_format
         )
 
-    # Handle explicit DeepGEMM FP8 configuration.
+    # Handle explicit DeepGEMM INT8 configuration.
     if not envs.is_set("VLLM_USE_DEEP_GEMM"):
-        AVAILABLE_BACKENDS.remove(Int8MoeBackend.DEEPGEMM)
-        AVAILABLE_BACKENDS.remove(Int8MoeBackend.BATCHED_DEEPGEMM)
+        for backend in (
+            Int8MoeBackend.DEEPGEMM,
+            Int8MoeBackend.BATCHED_DEEPGEMM,
+        ):
+            if backend in AVAILABLE_BACKENDS:
+                AVAILABLE_BACKENDS.remove(backend)
     if envs.is_set("VLLM_USE_DEEP_GEMM") or envs.is_set("VLLM_MOE_USE_DEEP_GEMM"):
         if not envs.VLLM_USE_DEEP_GEMM or not envs.VLLM_MOE_USE_DEEP_GEMM:
-            AVAILABLE_BACKENDS.remove(Int8MoeBackend.DEEPGEMM)
-            AVAILABLE_BACKENDS.remove(Int8MoeBackend.BATCHED_DEEPGEMM)
+            for backend in (
+                Int8MoeBackend.DEEPGEMM,
+                Int8MoeBackend.BATCHED_DEEPGEMM,
+            ):
+                if backend in AVAILABLE_BACKENDS:
+                    AVAILABLE_BACKENDS.remove(backend)
         else:
             backend = (
                 Int8MoeBackend.DEEPGEMM
@@ -219,7 +207,9 @@ def select_int8_moe_backend(
                 logger.debug_once(_make_log_unsupported(backend, reason))
 
     raise NotImplementedError(
-        "No Int8 MoE backend supports the deployment configuration."
+        "No Int8 MoE backend supports the deployment configuration "
+        f"(weight_key={weight_key}, activation_key={activation_key}). "
+        "Set `VLLM_LOGGING_LEVEL=DEBUG` to see per-backend unsupported reasons."
     )
 
 
@@ -269,6 +259,26 @@ def make_int8_moe_quant_config(
     )
 
 
+def convert_to_int8_moe_kernel_format(
+    int8_backend: Int8MoeBackend,
+    w13: torch.Tensor,
+    w2: torch.Tensor,
+    layer: torch.nn.Module | None = None,
+    w13_scale: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Convert INT8 MoE weights to backend-specific kernel format."""
+    if int8_backend == Int8MoeBackend.TRITON:
+        # TODO(Hank): prepare shape for triton experts
+        pass
+    elif int8_backend == Int8MoeBackend.BATCHED_TRITON:
+        # TODO(Hank): prepare shape for batched triton experts
+        pass
+    elif int8_backend == Int8MoeBackend.BATCHED_DEEPGEMM:
+        # TODO(Hank): prepare shape for batched deep_gemm experts
+        pass
+    return w13, w2
+
+
 def make_int8_moe_kernel(
     int8_backend: Int8MoeBackend,
     moe_quant_config: FusedMoEQuantConfig,
@@ -289,8 +299,6 @@ def make_int8_moe_kernel(
 
     logger.info_once("Using %s", prepare_finalize.__class__.__name__)
 
-    extra_kwargs = None
-
     # Create Experts.
     if prepare_finalize.activation_format == mk.FusedMoEActivationFormat.BatchedExperts:
         max_num_tokens = prepare_finalize.max_num_tokens_per_rank()
@@ -300,13 +308,11 @@ def make_int8_moe_kernel(
             quant_config=moe_quant_config,
             max_num_tokens=max_num_tokens,
             num_dispatchers=prepare_finalize.num_dispatchers(),
-            **extra_kwargs,
         )
     else:
         experts = experts_cls(
             moe_config=moe_config,
             quant_config=moe_quant_config,
-            **extra_kwargs,
         )
 
     kernel = mk.FusedMoEKernel(
