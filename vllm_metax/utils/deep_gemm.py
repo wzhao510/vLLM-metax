@@ -246,9 +246,11 @@ def bf16_paged_mqa_logits(
         kv_cache_bf16: Paged KV-cache in packed BF16+scale layout with shape
             [num_blocks, block_size, 1, D+4], dtype `torch.uint8`. The last
             4 bytes per (block,pos) store the `float` dequant scale.
-        weights: Tensor of shape [B * next_n, H], dtype `torch.float32`.
-        context_lens: Tensor of shape [B], dtype int32; effective context length
-            for each batch element.
+        weights: Contiguous tensor of shape [B * next_n, H], dtype
+            `torch.float32` or `torch.bfloat16`.
+        context_lens: Contiguous INT32 tensor with shape [B, next_n] (one
+            effective context limit per query) or [B] (limits are derived for
+            the `next_n` speculative positions).
         block_tables: Tensor of shape [B, max_blocks], dtype int32; maps logical
             block indices to physical blocks in the paged cache.
         schedule_metadata: Returned by `get_paged_mqa_logits_metadata`;
@@ -282,14 +284,13 @@ def int8_mqa_logits(
     cu_seqlen_ke: torch.Tensor,
     clean_logits: bool = True,
 ) -> torch.Tensor:
-    """Compute FP8 MQA logits for a single sequence without KV paging.
+    """Compute INT8 MQA logits for a single sequence without KV paging.
 
     Args:
-        q: Query tensor of shape [M, H, D]. Casted to
-            `torch.float8_e4m3fn` by caller.
-        kv: Tuple `(k_fp8, k_scales)` where `k_fp8` has shape [N, D] with
-            dtype `torch.float8_e4m3fn` and `k_scales` has shape [N] (or
-            [N, 1]) with dtype `torch.float32`.
+        q: INT8 query tensor with shape [M, H, D]. Its scale is folded into
+            ``weights`` by the caller.
+        kv: Tuple ``(k_int8, k_scales)`` where ``k_int8`` has shape [N, D]
+            and ``k_scales`` has shape [N] (or [N, 1]) with dtype FP32.
         weights: weights of shape [M, H], dtype `torch.float32`.
         cu_seqlen_ks: Start indices (inclusive) for valid K per query position,
             shape [M], dtype int32.
@@ -313,9 +314,179 @@ def int8_mqa_logits(
     )
 
 
+def _split_int8_paged_kv_cache(
+    kv_cache: torch.Tensor,
+    head_dim: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Split a block-segregated INT8 cache without losing its block stride."""
+    if kv_cache.dtype not in (torch.uint8, torch.int8):
+        raise TypeError(
+            f"INT8 paged MQA requires a uint8 or int8 KV cache; got {kv_cache.dtype}."
+        )
+    if kv_cache.ndim != 4:
+        raise ValueError(
+            "INT8 paged MQA expects KV cache shape "
+            "[num_blocks, block_size, 1, head_dim + 4]; "
+            f"got {tuple(kv_cache.shape)}."
+        )
+
+    num_blocks, block_size, num_kv_heads, fused_width = kv_cache.shape
+    if num_kv_heads != 1 or fused_width != head_dim + 4:
+        raise ValueError(
+            "INT8 paged MQA expects one KV head and a four-byte FP32 scale "
+            f"tail per token; got shape={tuple(kv_cache.shape)}, "
+            f"head_dim={head_dim}."
+        )
+    if kv_cache.stride(-1) != 1 or kv_cache.stride(1) != fused_width:
+        raise ValueError(
+            "INT8 paged MQA requires each physical cache page to contain "
+            "contiguous logical bytes; "
+            f"got stride={kv_cache.stride()}."
+        )
+
+    # Physical page layout is block-segregated, not token-interleaved:
+    # [block_size * head_dim INT8 values][block_size FP32 scales].
+    # Keep stride(0), which may span a packed multi-layer block slab in 0.27.
+    fused_flat = kv_cache.view(torch.int8).view(num_blocks, block_size * fused_width)
+    value_bytes = fused_flat[:, : block_size * head_dim]
+    scale_bytes = fused_flat[:, block_size * head_dim :]
+    values = value_bytes.view(num_blocks, block_size, head_dim)
+    scales = scale_bytes.view(num_blocks, block_size, 4).view(torch.float32)
+    return values, scales.squeeze(-1)
+
+
+def _int8_paged_mqa_logits_strided(
+    q: torch.Tensor,
+    kv_cache: torch.Tensor,
+    weights: torch.Tensor,
+    context_lens: torch.Tensor,
+    block_tables: torch.Tensor,
+    schedule_metadata: torch.Tensor,
+    max_model_len: int,
+    clean_logits: bool,
+) -> torch.Tensor:
+    """Run the DeepGEMM Triton kernel on a packed, block-strided KV view."""
+    from deep_gemm.kernels.mqa.int8.triton_paged import (
+        int8_paged_mqa_logits_kernel,
+    )
+
+    if q.ndim != 4 or q.dtype != torch.int8 or not q.is_contiguous():
+        raise ValueError(
+            "INT8 paged MQA requires contiguous q with shape "
+            f"[batch, next_n, heads, head_dim]; got {tuple(q.shape)}, "
+            f"dtype={q.dtype}, stride={q.stride()}."
+        )
+    if not q.is_cuda or not kv_cache.is_cuda or kv_cache.device != q.device:
+        raise ValueError("INT8 paged MQA requires device-resident Q and KV tensors.")
+    if (
+        not weights.is_cuda
+        or weights.device != q.device
+        or weights.dtype not in (torch.float32, torch.bfloat16)
+        or not weights.is_contiguous()
+    ):
+        raise ValueError(
+            "INT8 paged MQA weights must be contiguous FP32 or BF16 tensors."
+        )
+    if (
+        not context_lens.is_cuda
+        or not block_tables.is_cuda
+        or not schedule_metadata.is_cuda
+        or context_lens.device != q.device
+        or block_tables.device != q.device
+        or schedule_metadata.device != q.device
+        or context_lens.dtype != torch.int32
+        or not context_lens.is_contiguous()
+        or schedule_metadata.dtype != torch.int32
+        or not schedule_metadata.is_contiguous()
+        or block_tables.dtype != torch.int32
+    ):
+        raise ValueError(
+            "INT8 paged MQA context lengths, block tables, and schedule "
+            "metadata must use INT32; context lengths and schedule metadata "
+            "must be contiguous."
+        )
+    if max_model_len <= 0:
+        raise ValueError(f"max_model_len must be positive; got {max_model_len}.")
+
+    batch_size, next_n, num_heads, head_dim = q.shape
+    kv_values, kv_scales = _split_int8_paged_kv_cache(kv_cache, head_dim)
+    num_blocks, block_size, _ = kv_values.shape
+
+    rows = batch_size * next_n
+    logits = torch.full(
+        (rows, max_model_len),
+        float("-inf") if clean_logits else 0.0,
+        device=q.device,
+        dtype=torch.float32,
+    )
+    if context_lens.ndim == 2:
+        context_caps = context_lens[:, next_n - 1].contiguous()
+        q_limits = (context_lens.view(-1) - 1).contiguous()
+    else:
+        context_caps = context_lens
+        next_offsets = torch.arange(next_n, device=q.device, dtype=torch.int32)
+        q_limits = (context_caps[:, None] - next_n + next_offsets[None, :]).reshape(-1)
+
+    if num_heads % 64 == 0:
+        block_h = 64
+    elif num_heads % 32 == 0:
+        block_h = 32
+    else:
+        block_h = 64
+    num_worker_blocks = schedule_metadata.shape[0] - 1
+
+    int8_paged_mqa_logits_kernel[(num_worker_blocks,)](
+        q,
+        kv_values,
+        kv_scales,
+        weights,
+        context_caps,
+        q_limits,
+        block_tables,
+        schedule_metadata,
+        logits,
+        q.stride(0),
+        q.stride(1),
+        q.stride(2),
+        q.stride(3),
+        kv_values.stride(0),
+        kv_values.stride(1),
+        kv_values.stride(2),
+        kv_scales.stride(0),
+        kv_scales.stride(1),
+        weights.stride(0),
+        weights.stride(1),
+        block_tables.stride(0),
+        block_tables.stride(1),
+        context_caps.stride(0),
+        q_limits.stride(0),
+        schedule_metadata.stride(0),
+        schedule_metadata.stride(1),
+        logits.stride(0),
+        logits.stride(1),
+        batch_size,
+        num_blocks,
+        block_tables.shape[1],
+        max_model_len,
+        num_worker_blocks,
+        NEXT_N=next_n,
+        NUM_HEADS=num_heads,
+        HEAD_DIM=head_dim,
+        BLOCK_KV=block_size,
+        BLOCK_H=block_h,
+        BLOCK_GROUP=4,
+        NEED_HEAD_MASK=num_heads % block_h != 0,
+        num_warps=4,
+        num_stages=3,
+        pipeline="cpasync",
+        scenario="storeCoalesce",
+    )
+    return logits
+
+
 def int8_paged_mqa_logits(
-    q_bf16: torch.Tensor,
-    kv_cache_bf16: torch.Tensor,
+    q: torch.Tensor,
+    kv_cache: torch.Tensor,
     weights: torch.Tensor,
     context_lens: torch.Tensor,
     block_tables: torch.Tensor,
@@ -323,14 +494,16 @@ def int8_paged_mqa_logits(
     max_model_len: int,
     clean_logits: bool = True,
 ) -> torch.Tensor:
-    """Compute BF16 MQA logits using paged KV-cache.
+    """Compute INT8 MQA logits using a block-segregated paged KV cache.
 
     Args:
-        q_bf16: Query tensor of shape [B, next_n, H, D]. Casted to
-            `torch.float16` by caller.
-        kv_cache_bf16: Paged KV-cache in packed BF16+scale layout with shape
-            [num_blocks, block_size, 1, D+4], dtype `torch.uint8`. The last
-            4 bytes per (block,pos) store the `float` dequant scale.
+        q: Contiguous INT8 query tensor with shape [B, next_n, H, D]. Its
+            per-token/head scale is folded into ``weights`` by the caller.
+        kv_cache: Paged cache with logical shape
+            [num_blocks, block_size, 1, D+4] and dtype uint8/int8. Each page
+            stores all ``block_size * D`` INT8 values first, followed by all
+            ``block_size`` FP32 scales. ``stride(0)`` may span a packed
+            multi-layer block slab.
         weights: Tensor of shape [B * next_n, H], dtype `torch.float32`.
         context_lens: Tensor of shape [B], dtype int32; effective context length
             for each batch element.
@@ -347,9 +520,20 @@ def int8_paged_mqa_logits(
     _lazy_init()
     if _int8_paged_mqa_logits_impl is None:
         return _missing()
+    # if not kv_cache.is_contiguous():
+    #     return _int8_paged_mqa_logits_strided(
+    #         q,
+    #         kv_cache,
+    #         weights,
+    #         context_lens,
+    #         block_tables,
+    #         schedule_metadata,
+    #         max_model_len,
+    #         clean_logits,
+    #     )
     return _int8_paged_mqa_logits_impl(
-        q_bf16,
-        kv_cache_bf16,
+        q,
+        kv_cache,
         weights,
         context_lens,
         block_tables,

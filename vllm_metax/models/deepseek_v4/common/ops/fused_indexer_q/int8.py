@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # 2026 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. All Rights Reserved.
 import torch
+
+from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
+from vllm.utils.import_utils import has_cutedsl
 
 @triton.jit
 def _round_to_nearest(x):
@@ -54,6 +57,8 @@ def _fused_indexer_q_rope_int8_quant_kernel(
     index_weights_head_scale,
     index_weights_out_ptr,
     index_weights_out_stride,
+    INT8_MAX: tl.constexpr = 127.0,
+    USE_FNUZ: tl.constexpr = False,
 ):
     INDEX_Q_ROT_DIM: tl.constexpr = 2 * INDEX_Q_HALF_ROT_DIM
     INDEX_Q_NOPE_DIM: tl.constexpr = INDEX_Q_HEAD_DIM - INDEX_Q_ROT_DIM
@@ -69,25 +74,23 @@ def _fused_indexer_q_rope_int8_quant_kernel(
         pos,
         INDEX_Q_HALF_ROT_DIM,
     )
-
     half_offset = tl.arange(0, INDEX_Q_HALF_ROT_DIM)
     base_ptr = index_q_ptr + tok_idx * index_q_stride0 + head_idx * index_q_stride1
 
-    # GPT-J interleaved RoPE on dims [NOPE_DIM, HEAD_DIM)
+    # Interleaved (GPT-J) RoPE on dims [NOPE_DIM, HEAD_DIM):
+    #   even = q[NOPE_DIM + 2*i],  odd = q[NOPE_DIM + 2*i + 1]
     rot_base = base_ptr + INDEX_Q_NOPE_DIM
     x_even = tl.load(rot_base + half_offset * 2).to(tl.float32)
     x_odd = tl.load(rot_base + half_offset * 2 + 1).to(tl.float32)
-
     r_even = x_even * cos - x_odd * sin
     r_odd = x_odd * cos + x_even * sin
 
-    # Keep same numeric convention as original FP8 path:
-    # fp32 -> bf16 -> fp32 before absmax / quant.
+    # Match reference numerics: fp32 → bf16 → fp32 before the INT8 absmax.
+    # Same pattern as the K-side compressor kernel (fused_compress_quant_cache.py).
     r_even = r_even.to(tl.bfloat16).to(tl.float32)
     r_odd = r_odd.to(tl.bfloat16).to(tl.float32)
 
     amax = tl.maximum(tl.max(tl.abs(r_even)), tl.max(tl.abs(r_odd)))
-
     if INDEX_Q_NOPE_DIM > 0:
         nope_offset = tl.arange(0, INDEX_Q_NOPE_DIM)
         x_nope = tl.load(base_ptr + nope_offset).to(tl.float32)
@@ -148,6 +151,8 @@ def fused_indexer_q_rope_int8_quant(
     index_weights: torch.Tensor,
     index_weights_softmax_scale: float,
     index_weights_head_scale: float,
+    use_fp4: bool = False, # Dummy use in int8
+    output_buffers: tuple[torch.Tensor, ...] | None = None,
 ) -> tuple[
     torch.Tensor | tuple[torch.Tensor, torch.Tensor],
     torch.Tensor,

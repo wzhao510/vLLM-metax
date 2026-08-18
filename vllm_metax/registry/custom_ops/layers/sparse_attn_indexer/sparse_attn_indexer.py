@@ -68,8 +68,9 @@ class MacaSparseAttnIndexer(SparseAttnIndexer):
         k: torch.Tensor,
         weights: torch.Tensor,
     ):
-        # FP8 path: single tensor (per-token scale is folded into `weights`).
-        # FP4 path: (values, scales) tuple with scales required by the kernel.
+        # MetaX INT8 uses one Q tensor because its per-token/head scale is
+        # folded into ``weights``. Tuple input remains for other quantized
+        # indexer implementations registered by this shared wrapper.
         if isinstance(q_quant, tuple):
             q_values, q_scale = q_quant
         else:
@@ -83,7 +84,8 @@ class MacaSparseAttnIndexer(SparseAttnIndexer):
             sparse_attn_indexer_impl = torch.ops.vllm.mx_sparse_attn_indexer
         else:
             raise NotImplementedError(
-                f"MacaSparseAttnIndexer only support bf16,fp16 and fp8. But got {q_quant.dtype}"
+                "MacaSparseAttnIndexer supports BF16, FP16, INT8, and optional "
+                f"platform FP8 Q tensors; got {q_values.dtype}."
             )
 
         return sparse_attn_indexer_impl(

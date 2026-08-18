@@ -26,11 +26,8 @@ from vllm.model_executor.layers.quantization.utils.quant_utils import (
 
 from vllm.model_executor.utils import replace_parameter
 
-from vllm.model_executor.layers.fused_moe.oracle.int8 import (
-    convert_to_int8_moe_kernel_format,
-)
-
 from vllm_metax.model_executor.layers.fused_moe.oracle.int8 import (
+    convert_to_int8_moe_kernel_format,
     make_int8_moe_kernel,
     make_int8_moe_quant_config,
     select_int8_moe_backend,
@@ -110,6 +107,7 @@ class CompressedTensorsW8A8Int8MoEMethod(vllm_ctm_w8a8_int8):
             routing_tables=layer._expert_routing_tables(),
             layer=layer,
         )
+        self.moe_kernel.fused_experts.process_weights_after_loading(layer)
 
     def apply(
         self,

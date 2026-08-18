@@ -94,8 +94,7 @@ def sparse_attn_indexer_int8(
             ((RADIX_TOPK_WORKSPACE_SIZE,), torch.uint8),
         )
 
-        # Dummy allocation to simulate for peak logits tensor memory during inference.
-        # FP8 elements so elements == bytes
+        # Dummy byte allocation to simulate peak logits memory during inference.
         max_logits_elems = envs.VLLM_SPARSE_INDEXER_MAX_LOGITS_MB * 1024 * 1024
         _ = torch.empty(
             max_logits_elems, dtype=torch.uint8, device=hidden_states.device
@@ -127,8 +126,8 @@ def sparse_attn_indexer_int8(
     has_prefill = attn_metadata_narrowed.num_prefills > 0
     num_decode_tokens = attn_metadata_narrowed.num_decode_tokens
 
-    # q_scale is required iff the FP4 cache path is enabled; the FP8 path
-    # folds the Q scale into `weights` inside fused_indexer_q_rope_quant.
+    # MetaX INT8 folds the Q scale into ``weights`` in
+    # fused_indexer_q_rope_int8_quant, so no separate Q scale is consumed.
     assert use_fp4_cache is False, "not supported"
     assert q_scale is None, "q_scale must be None when use_fp4_cache=False"
 
@@ -160,9 +159,9 @@ def sparse_attn_indexer_int8(
         assert prefill_metadata is not None
 
         # Get the full shared workspace buffers once (will allocate on first use).
-        # Layout switches between FP8 (head_dim bytes + 4-byte fp32 scale) and
-        # MXFP4 (head_dim/2 bytes packed + head_dim/MXFP4_BLOCK_SIZE ue8m0
-        # scales) based on use_fp4_cache.
+        # INT8 prefill gather exposes separate value and FP32-scale workspaces.
+        # The paged source keeps the same data block-segregated: all values in
+        # a page precede all scales.
         workspace_manager = current_workspace_manager()
         values_spec, scales_spec = _gather_workspace_shapes_int8(
             total_seq_lens, head_dim, torch.int8
@@ -250,11 +249,9 @@ def sparse_attn_indexer_int8(
             # decode_threshold since we unstrictly split
             # prefill and decode by decode_threshold
             # (currently set to 1 + speculative tokens).
-            # FP8 Q is float8_e4m3fn (pack_seq_triton's fp32 pad path is OK —
-            # downstream context_lens masks stale slots). MXFP4 Q is two
-            # uint8 tensors (values + ue8m0 scales) — use the dedicated uint8
-            # packer with pad_byte=0 so padded slots dequantize to 0 and
-            # can't produce NaN/Inf in the logits kernel.
+            # INT8 Q uses the standard packer. Downstream context_lens mask
+            # stale padded slots, and the folded Q scale needs no companion
+            # tensor.
             padded_q_quant_decode_tokens = pack_seq_triton(
                 q_quant[:num_decode_tokens], decode_lens
             )
@@ -270,8 +267,8 @@ def sparse_attn_indexer_int8(
         num_padded_tokens = batch_size * next_n
         seq_lens = decode_metadata.seq_lens[:batch_size]
         # seq_lens is always 2D: (B, next_n) for native spec decode, (B, 1)
-        # otherwise. deep_gemm fp8_fp4_paged_mqa_logits requires 2D context_lens;
-        # the downstream topk kernels accept both 1D and 2D.
+        # otherwise. The INT8 paged-MQA path and downstream top-k kernels
+        # consume this form directly.
         padded_q_quant_cast = padded_q_quant_decode_tokens
         logits = int8_paged_mqa_logits(
             padded_q_quant_cast,
