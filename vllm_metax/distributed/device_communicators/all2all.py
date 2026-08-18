@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # 2026 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. All Rights Reserved.
+# SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+from typing import Any
+
 import torch
 
-from typing import Any
-from vllm.distributed import get_dp_group, get_ep_group
+import vllm.envs as envs
+from vllm.distributed import get_dp_group, get_ep_group, get_pcp_group
 from vllm.forward_context import get_forward_context
 
 from vllm.distributed.device_communicators.base_device_communicator import (
     All2AllManagerBase,
 )
 from vllm.platforms import current_platform
-import vllm.envs as envs
 
 from vllm.distributed.device_communicators.all2all import (
     DeepEPLLAll2AllManager,
@@ -26,6 +28,23 @@ class MacaAgRsAll2AllManager(All2AllManagerBase):
     def __init__(self, cpu_group, tcp_store_group=None):
         super().__init__(cpu_group, tcp_store_group)
 
+    def _get_comm_group(self, is_sequence_parallel: bool) -> Any:
+        if is_sequence_parallel:
+            return get_ep_group()
+        if self.dp_world_size > 1:
+            return get_dp_group()
+        return get_pcp_group()
+
+    def _get_sizes(self, num_local_tokens: int, comm_group: Any) -> list[int]:
+        if self.dp_world_size == 1:
+            return [num_local_tokens] * comm_group.world_size
+
+        dp_metadata = get_forward_context().dp_metadata
+        assert dp_metadata is not None
+        sizes = dp_metadata.get_chunk_sizes_across_dp_rank()
+        assert sizes is not None
+        return sizes
+
     def dispatch_router_logits(
         self,
         hidden_states: torch.Tensor,
@@ -39,11 +58,8 @@ class MacaAgRsAll2AllManager(All2AllManagerBase):
         """
         Gather hidden_states and router_logits from all dp ranks.
         """
-        dp_metadata = get_forward_context().dp_metadata
-        assert dp_metadata is not None
-        sizes = dp_metadata.get_chunk_sizes_across_dp_rank()
-        assert sizes is not None
-        dist_group = get_ep_group() if is_sequence_parallel else get_dp_group()
+        dist_group = self._get_comm_group(is_sequence_parallel)
+        sizes = self._get_sizes(hidden_states.shape[0], dist_group)
         assert sizes[dist_group.rank_in_group] == hidden_states.shape[0]
 
         tensors_to_gather = [hidden_states, router_logits]
@@ -116,12 +132,16 @@ class MacaAgRsAll2AllManager(All2AllManagerBase):
     ):
         """
         Gather hidden_states and router_logits from all dp ranks.
+
+        combined:
+        ┌─────────────┬──────────┬─────────┐
+        │ weights: K  │ ids: K   │ scale:S │
+        └─────────────┴──────────┴─────────┘
+
+        shape = [M_local, 2K + S]
         """
-        dp_metadata = get_forward_context().dp_metadata
-        assert dp_metadata is not None
-        sizes = dp_metadata.get_chunk_sizes_across_dp_rank()
-        assert sizes is not None
-        dist_group = get_ep_group() if is_sequence_parallel else get_dp_group()
+        dist_group = self._get_comm_group(is_sequence_parallel)
+        sizes = self._get_sizes(hidden_states.shape[0], dist_group)
         assert sizes[dist_group.rank_in_group] == hidden_states.shape[0]
 
         topk = topk_weights.shape[1]
@@ -147,12 +167,11 @@ class MacaAgRsAll2AllManager(All2AllManagerBase):
         """
         Reduce-scatter hidden_states across all dp ranks.
         """
-        dp_metadata = get_forward_context().dp_metadata
-        assert dp_metadata is not None
-        sizes = dp_metadata.get_chunk_sizes_across_dp_rank()
-        assert sizes is not None
-
-        dist_group = get_ep_group() if is_sequence_parallel else get_dp_group()
+        dist_group = self._get_comm_group(is_sequence_parallel)
+        sizes = self._get_sizes(
+            hidden_states.shape[0] // dist_group.world_size,
+            dist_group,
+        )
         hidden_states = dist_group.reduce_scatterv(hidden_states, dim=0, sizes=sizes)
         return hidden_states
 
@@ -170,8 +189,8 @@ class MacaDeepEPLLAll2AllManager(DeepEPLLAll2AllManager):
         num_local_experts: int,
     ) -> dict[Any, Any]:
         """
-        max_num_tokens_per_dp_rank: the maximum number of tokens a DP rank
-            can dispatch all the ranks must hold the same value.
+        max_num_tokens_per_dp_rank : the maximum number of tokens a DP rank
+          can dispatch all the ranks must hold the same value.
         token_hidden_size: the hidden dimension of each token.
         num_ep_ranks: the number of EP group ranks.
         num_global_experts: Number of experts in the model.
@@ -186,9 +205,9 @@ class MacaDeepEPLLAll2AllManager(DeepEPLLAll2AllManager):
         import deep_ep  # type: ignore[import-not-found]
 
         # Defaults for internode and intranode are taken from DeepEP tests.
-        num_nvl_bytes: int = envs.VLLM_DEEPEP_BUFFER_SIZE_MB * 1024 * 1024  # noqa: F841
-        num_qps_per_rank: int = num_local_experts
-        num_rdma_bytes: int = deep_ep.Buffer.get_low_latency_rdma_size_hint(
+        num_nvl_bytes = envs.VLLM_DEEPEP_BUFFER_SIZE_MB * 1024 * 1024  # noqa: F841
+        num_qps_per_rank = num_local_experts
+        num_rdma_bytes = deep_ep.Buffer.get_low_latency_rdma_size_hint(
             num_max_dispatch_tokens_per_rank=max_num_tokens_per_dp_rank,
             hidden=token_hidden_size,
             num_ranks=num_ep_ranks,
