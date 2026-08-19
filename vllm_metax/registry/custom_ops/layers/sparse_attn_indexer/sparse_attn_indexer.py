@@ -52,6 +52,7 @@ class MacaSparseAttnIndexer(SparseAttnIndexer):
         self.topk_indices_buffer = topk_indices_buffer
         self.skip_k_cache_insert = skip_k_cache_insert
         self.use_fp4_cache = use_fp4_cache
+        self.dense_mha_metadata_layer_name = ""
         # DCP scalars are constant for the run; resolve them here (config is set
         # during model construction) and pass them into the custom op, rather
         # than threading them through per-step metadata.
@@ -105,6 +106,7 @@ class MacaSparseAttnIndexer(SparseAttnIndexer):
             self.topk_indices_buffer,
             self.skip_k_cache_insert,
             self.use_pcp,
+            _encode_layer_name(self.dense_mha_metadata_layer_name),
             self.use_fp4_cache,
             self.dcp_rank,
             self.dcp_world_size,

@@ -15,6 +15,7 @@ from vllm.distributed.parallel_state import (
 from vllm.model_executor.layers.minimax_rms_norm.rms_norm_tp import (
     MINIMAX_QK_NORM_MAX_TOKEN_NUM,
     MiniMaxText01RMSNormTP,
+    logger,
     _MINIMAX_FUSED_AR_RMS_QK,
 )
 
@@ -51,9 +52,24 @@ class MacaMiniMaxText01RMSNormTP(MiniMaxText01RMSNormTP):
             from .lamport_workspace import get_allreduce_workspace
 
             # \-----------------------------------/
-            self.workspace = get_allreduce_workspace(
-                rank=self.tp_rank,
-                world_size=self.tp_world,
-                max_tokens=MINIMAX_QK_NORM_MAX_TOKEN_NUM,
-                process_group=get_tp_group().cpu_group,
-            )
+            # The Lamport workspace exchanges CUDA IPC handles and enables peer
+            # access between GPUs. This requires P2P (IPC peer access) to be
+            # available; on topologies where it is not (e.g. consumer PCIe cards
+            # with P2P disabled in the driver), allocation raises. Fall back to
+            # the eager allreduce + RMSNorm path instead of failing model load.
+            try:
+                self.workspace = get_allreduce_workspace(
+                    rank=self.tp_rank,
+                    world_size=self.tp_world,
+                    max_tokens=MINIMAX_QK_NORM_MAX_TOKEN_NUM,
+                    process_group=get_tp_group().cpu_group,
+                )
+            except Exception as e:
+                logger.warning_once(
+                    "Failed to initialize MiniMax fused allreduce+RMSNorm "
+                    "Lamport workspace: %s. This is expected on GPUs without "
+                    "P2P (IPC peer access) support. Falling back to the eager "
+                    "allreduce + RMSNorm path.",
+                    e,
+                )
+                self.workspace = None
