@@ -22,7 +22,7 @@ class MacaAutoGPTQConfig(AutoGPTQConfig):
 
     def get_quant_method(
         self, layer: torch.nn.Module, prefix: str
-    ) -> "QuantizeMethodBase| None":
+    ) -> "QuantizeMethodBase | None":
         if isinstance(layer, RoutedExperts):
             # GPTQ MoE support: fall back to MoeWNA16 for broad compatibility
             from vllm_metax.registry.quant_config.moe_wna16 import MacaMoeWNA16Config
