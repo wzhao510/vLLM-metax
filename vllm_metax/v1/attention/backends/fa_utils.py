@@ -13,6 +13,7 @@ if current_platform.is_out_of_tree():
 
     get_scheduler_metadata = dummy_ops.get_scheduler_metadata
     reshape_and_cache_flash = ops.reshape_and_cache_flash
+    compile_flash_attn_varlen_func_from_specs = None  # type: ignore[assignment]
 
 
 def get_flash_attn_version(
@@ -20,6 +21,7 @@ def get_flash_attn_version(
     head_size: int | None = None,
     head_size_v: int | None = None,
     has_sinks: bool = False,
+    requires_local_attention: bool = False,
 ) -> int | None:
     logger.info_once(
         "Using Maca version of flash attention, which only supports version 2."
@@ -33,6 +35,19 @@ def get_flash_attn_version(
 
 def is_fa_version_supported(fa_version: int) -> bool:
     return fa_version == 2
+
+
+def flash_attn_supports_kv_cache_dtype(
+    kv_cache_dtype: str = "fp8_e4m3",
+    *,
+    requires_alibi: bool = False,
+    head_size: int | None = None,
+    head_size_v: int | None = None,
+    has_sinks: bool = False,
+) -> bool:
+    # Maca does not support quantized kv for fa2 (but soon in fa3 in the future)
+    # Currently set to false
+    return False
 
 
 def flash_attn_supports_quant_query_input() -> bool:

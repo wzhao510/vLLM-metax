@@ -280,7 +280,12 @@ class MacaTritonAttentionBackend(AttentionBackend):
         "auto",
         "float16",
         "bfloat16",
+        "fp8",
+        "fp8_e4m3",
+        "fp8_e5m2",
+        "int4_per_token_head",
         "int8_per_token_head",
+        "fp8_per_token_head",
     ]
 
     @staticmethod
@@ -831,7 +836,8 @@ class TritonAttentionImpl(AttentionImpl):
         )
 
     def fused_rope_kvcache_supported(self):
-        return False
+        if self._is_per_token_head_quant:
+            return False
 
     def do_rope_and_kv_cache_update(
         self,

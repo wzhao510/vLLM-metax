@@ -146,7 +146,7 @@ class FlashAttentionDiffKVImpl(FlashAttentionImpl):
             return
 
         # DiffKV packs K and V into a single tensor along the last dim:
-        #   logical kv_cache shape: [num_blocks, num_kv_heads, block_size,
+        #   kv_cache shape: [num_blocks, block_size, num_kv_heads,
         #                    head_size_k + head_size_v]
         # (B, H, N, C) -> (B, N, H, C) for kernel compatibility.
         triton_reshape_and_cache_flash_diffkv(
@@ -178,7 +178,7 @@ class FlashAttentionDiffKVImpl(FlashAttentionImpl):
             key: shape = [num_tokens, num_kv_heads, head_size]
             value: shape = [num_tokens, num_kv_heads, head_size_v]
             kv_cache: shape =
-                [num_blocks, num_kv_heads, block_size, head_size + head_size_v]
+                [num_blocks, block_size, num_kv_heads, head_size + head_size_v]
             attn_metadata: Metadata for attention.
         Returns:
             shape = [num_tokens, num_heads * head_size_v]
@@ -225,10 +225,8 @@ class FlashAttentionDiffKVImpl(FlashAttentionImpl):
                 layer,
             )
 
-        # (B, H, N, C_k+C_v) -> ((B, N, H, C_k), (B, N, H, C_v))
-        key_cache, value_cache = kv_cache.transpose(1, 2).split(
-            (self.head_size, FlashAttentionDiffKVBackend.head_size_v), dim=-1
-        )
+        # (B, H, N, 2*hs) -> ((B, N, H, hs), (B, N, H, hs))
+        key_cache, value_cache = kv_cache.transpose(1, 2).split(self.head_size, dim=-1)
         # Fix degenerate strides on size-1 dims (e.g. num_kv_heads=1 with TP).
         # FA3/4 on H100+ uses TMA, which requires ≥16-byte stride alignment.
         # See vllm.utils.torch_utils.canonicalize_singleton_dim_strides.
@@ -254,6 +252,7 @@ class FlashAttentionDiffKVImpl(FlashAttentionImpl):
 
         if not attn_metadata.use_cascade:
             cu_seqlens_q = attn_metadata.query_start_loc
+            seqused_k = attn_metadata.seq_lens
             max_seqlen_q = attn_metadata.max_query_len
             max_seqlen_k = attn_metadata.max_seq_len
             block_table = attn_metadata.block_table
@@ -276,12 +275,11 @@ class FlashAttentionDiffKVImpl(FlashAttentionImpl):
                 )
                 return output
             else:
-                window = (
-                    attn_metadata.sliding_window
-                    if attn_metadata.sliding_window is not None
-                    else self.sliding_window
+                sliding_window_size = (
+                    list(self.sliding_window)
+                    if self.sliding_window is not None
+                    else None
                 )
-                sliding_window_size = list(window) if window is not None else None
                 if mx_envs.VLLM_METAX_ENABLE_FA_SPLIT_FORWARD:
                     # ┌------------------------  Metax Modification -------------------------┐
                     # For handling prefill decode split

@@ -24,6 +24,7 @@ from vllm.v1.attention.backend import (
     MultipleOf,
 )
 from vllm_metax.v1.attention.backends.fa_utils import (
+    flash_attn_supports_kv_cache_dtype,
     flash_attn_supports_quant_query_input,
     get_flash_attn_version,
     is_fa_version_supported,
@@ -69,7 +70,7 @@ from vllm.v1.attention.backends.utils import (
     reshape_attn_output_for_spec_decode,  # used for prefill decode split with mtp
     reshape_query_for_spec_decode,  # used for prefill decode split with mtp
 )
-from vllm.v1.kv_cache_interface import AttentionSpec
+from vllm.v1.kv_cache_interface import AttentionSpec, KVCacheSpec
 from vllm.v1.worker.cp_utils import (
     should_skip_dcp_context_attention,
     should_split_fa2_dcp_context_attention,
@@ -195,14 +196,11 @@ class MacaFlashAttentionBackend(AttentionBackend):
     def supports_kv_cache_dtype(cls, kv_cache_dtype: CacheDType | None) -> bool:
         if kv_cache_dtype is None:
             return True
-        if kv_cache_dtype in ("fp8", "fp8_e4m3"):
-            if current_platform.is_xpu():
-                return True
-            return (
-                get_flash_attn_version() == 3
-                and current_platform.is_device_capability_family(90)
-            )
-        return kv_cache_dtype in ["auto", "float16", "bfloat16"]
+        if kv_cache_dtype not in cls.supported_kv_cache_dtypes:
+            return False
+        if is_quantized_kv_cache(kv_cache_dtype):
+            return flash_attn_supports_kv_cache_dtype(kv_cache_dtype)
+        return True
 
     @classmethod
     def supports_mm_prefix(cls) -> bool:
@@ -294,8 +292,8 @@ class FlashAttentionMetadata:
     # [num_reqs + 1], cumulative form required by the MetaX FlashAttention API.
     dcp_context_cu_seqlens_k: torch.Tensor | None = None
 
-    # Keep these DCP split counts aligned with upstream vLLM. num_prefill_*
-    # tracks context-bearing extend rows; pure prefills do not attend to DCP.
+    # Split counts for FA2 DCP context attention. num_prefill_* tracks
+    # context-bearing extend rows; pure prefills do not attend to DCP context.
     num_decode_reqs: int = 0
     num_prefill_reqs: int = 0
     num_decode_tokens: int = 0
@@ -462,7 +460,7 @@ class FlashAttentionMetadataBuilder(AttentionMetadataBuilder[FlashAttentionMetad
     def get_cudagraph_support(
         cls,
         vllm_config: "VllmConfig",
-        kv_cache_spec: "AttentionSpec",
+        kv_cache_spec: "KVCacheSpec",
     ) -> AttentionCGSupport:
         return cls._cudagraph_support
 
@@ -1053,7 +1051,9 @@ class FlashAttentionImpl(AttentionImpl):
         self.attn_type = attn_type
         self.vllm_flash_attn_version = get_flash_attn_version(
             requires_alibi=alibi_slopes is not None,
+            requires_local_attention=sliding_window is not None,
             head_size=head_size,
+            has_sinks=sinks is not None,
         )
         logger.info_once(
             "Using FlashAttention version %s",
@@ -1062,10 +1062,24 @@ class FlashAttentionImpl(AttentionImpl):
         # Cache the batch invariant result for use in forward passes
         self.batch_invariant_enabled = envs.VLLM_BATCH_INVARIANT
 
+        if is_quantized_kv_cache(
+            self.kv_cache_dtype
+        ) and not flash_attn_supports_kv_cache_dtype(
+            self.kv_cache_dtype,
+            requires_alibi=alibi_slopes is not None,
+            head_size=head_size,
+            head_size_v=head_size,
+            has_sinks=sinks is not None,
+        ):
+            raise NotImplementedError(
+                f"FlashAttention does not support {self.kv_cache_dtype}"
+                " kv-cache on this device."
+            )
+
         self.sinks = sinks
         if self.sinks is not None:
             assert flash_attn_supports_sinks(), (
-                "The configured FlashAttention backend does not support attention sinks"
+                "Sinks are only supported in FlashAttention 3"
             )
             assert self.sinks.shape[0] == num_heads, (
                 "Sinks must have the same number of heads as the number of "
@@ -1514,7 +1528,7 @@ class FlashAttentionImpl(AttentionImpl):
             (
                 dcp_context_out_tokens,
                 self.num_heads * self.dcp_world_size,
-                output.shape[-1],
+                self.head_size,
             ),
             self._dcp_dtype,
         )
@@ -1676,146 +1690,6 @@ class FlashAttentionImpl(AttentionImpl):
         )
 
         return output
-
-
-def _make_mm_prefix_mask_mod(
-    max_ranges: int,
-    sliding_window: int = 0,
-    sliding_window_left: int | None = None,
-):
-    """Build a CuTE-DSL mask_mod implementing
-    ``(causal AND sliding_window) OR mm_prefix``.
-
-    The FA4 kernel passes *local* ``q_idx`` (0-based within the current
-    prefill chunk) while ``kv_idx`` is absolute (0-based over the full
-    KV cache).  We recover the absolute Q position via
-    ``q_abs = q_idx + seqlen_k - seqlen_q`` (the context-length offset)
-    so that causal, sliding-window, and mm_prefix range comparisons all
-    use consistent absolute positions.  This matches the Triton
-    reference path (``compute_kv_seq_mask``).
-
-    ``sliding_window_left`` enforces the sliding window on the causal
-    term (None = full causal, no window).  ``sliding_window`` clamps the
-    bidirectional block to the window (0 = unclamped; >0 = Gemma4 local
-    layers via ``mm_prefix_clamp_sliding_window``).
-    """
-    import cutlass
-    import cutlass.cute as cute
-    from cutlass import Int32  # type: ignore[attr-defined]
-
-    from vllm.vllm_flash_attn.cute.utils import (  # type: ignore[import-untyped]
-        scalar_to_ssa,
-    )
-
-    if sliding_window_left is not None:
-
-        @cute.jit
-        def mm_prefix_mask_mod(
-            batch_idx: cute.TensorSSA,
-            head_idx: cute.TensorSSA,
-            q_idx: cute.TensorSSA,
-            kv_idx: cute.TensorSSA,
-            seqlen_info,
-            aux_tensors,
-        ):
-            ctx_off = scalar_to_ssa(seqlen_info.seqlen_k - seqlen_info.seqlen_q, Int32)
-            q_abs = q_idx + ctx_off
-            sw = scalar_to_ssa(Int32(sliding_window_left), Int32)
-            keep = (kv_idx <= q_abs) & ((q_abs - kv_idx) < sw)
-            ranges = aux_tensors[0]
-            b = batch_idx[0]
-            for i in cutlass.range_constexpr(max_ranges):  # type: ignore[attr-defined]
-                r_start = scalar_to_ssa(ranges[b, i, 0], Int32)
-                r_end = scalar_to_ssa(ranges[b, i, 1], Int32)
-                valid = r_start < r_end
-                q_in = (q_abs >= r_start) & (q_abs <= r_end) & valid
-                k_in = (kv_idx >= r_start) & (kv_idx <= r_end) & valid
-                mm = q_in & k_in
-                if sliding_window > 0:
-                    mm = mm & ((q_abs - kv_idx) < sw)
-                keep = keep | mm
-            return keep
-
-    else:
-
-        @cute.jit
-        def mm_prefix_mask_mod(
-            batch_idx: cute.TensorSSA,
-            head_idx: cute.TensorSSA,
-            q_idx: cute.TensorSSA,
-            kv_idx: cute.TensorSSA,
-            seqlen_info,
-            aux_tensors,
-        ):
-            ctx_off = scalar_to_ssa(seqlen_info.seqlen_k - seqlen_info.seqlen_q, Int32)
-            q_abs = q_idx + ctx_off
-            keep = kv_idx <= q_abs
-            ranges = aux_tensors[0]
-            b = batch_idx[0]
-            for i in cutlass.range_constexpr(max_ranges):  # type: ignore[attr-defined]
-                r_start = scalar_to_ssa(ranges[b, i, 0], Int32)
-                r_end = scalar_to_ssa(ranges[b, i, 1], Int32)
-                valid = r_start < r_end
-                q_in = (q_abs >= r_start) & (q_abs <= r_end) & valid
-                k_in = (kv_idx >= r_start) & (kv_idx <= r_end) & valid
-                keep = keep | (q_in & k_in)
-            return keep
-
-    mm_prefix_mask_mod.use_fast_sampling = True
-    return mm_prefix_mask_mod
-
-
-def _make_rswa_mask_mod():
-    """Build a CuTE-DSL mask_mod for Reference Sliding Window Attention (R-SWA).
-
-    FA4 varlen + paged-KV convention (verified from cute/mask.py apply_mask):
-      q_idx  = LOCAL query-token offset (0 .. seqlen_q - 1) within this sequence.
-      kv_idx = LOCAL KV-token position (0 .. seqlen_k - 1) within this sequence.
-
-    To recover the ABSOLUTE token position (needed for causal and the sliding
-    window distance), use the standard offset:
-      abs_q = q_idx + (seqlen_k - seqlen_q)
-
-    R-SWA keep condition:
-      abs_q >= kv_idx                    (causal: KV at or before the query)
-      AND (kv_idx < prefix_len           (global prefix is always visible)
-           OR  abs_q - kv_idx < window)  (generated tokens: sliding window)
-
-    aux_tensors[0]: prefix_lens [num_reqs] int32 — per-request prefill length.
-    aux_tensors[1]: rswa_window [1]        int32 — decode sliding window size.
-
-    use_fast_sampling=True lets FA4 skip fully-masked KV blocks (gap blocks)
-    without loading their data.
-    """
-    import cutlass.cute as cute
-    from cutlass import Int32  # type: ignore[attr-defined]
-
-    from vllm.vllm_flash_attn.cute.utils import (  # type: ignore[import-untyped]
-        scalar_to_ssa,
-    )
-
-    @cute.jit
-    def rswa_mask_mod(
-        batch_idx: cute.TensorSSA,
-        head_idx: cute.TensorSSA,
-        q_idx: cute.TensorSSA,
-        kv_idx: cute.TensorSSA,
-        seqlen_info,
-        aux_tensors,
-    ):
-        b = batch_idx[0]
-        prefix_len = scalar_to_ssa(aux_tensors[0][b], Int32)
-        window = scalar_to_ssa(aux_tensors[1][0], Int32)
-        # Convert local q offset to absolute token position.
-        offset = scalar_to_ssa(seqlen_info.seqlen_k - seqlen_info.seqlen_q, Int32)
-        abs_q = q_idx + offset
-        causal = kv_idx <= abs_q
-        in_prefix = kv_idx < prefix_len
-        in_window = (abs_q - kv_idx) < window
-        return causal & (in_prefix | in_window)
-
-    rswa_mask_mod.use_fast_sampling = True
-    return rswa_mask_mod
 
 
 def use_cascade_attention(
