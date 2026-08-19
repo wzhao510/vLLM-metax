@@ -69,6 +69,7 @@ def _get_priority_backends(
     """
     _AVAILABLE_BACKENDS = [
         Int8MoeBackend.TRITON,
+        Int8MoeBackend.DEEPGEMM,
         Int8MoeBackend.BATCHED_TRITON,
         Int8MoeBackend.BATCHED_DEEPGEMM,
     ]
@@ -289,7 +290,7 @@ def make_int8_moe_kernel(
 
     logger.info_once("Using %s", prepare_finalize.__class__.__name__)
 
-    extra_kwargs = None
+    extra_kwargs = {}
 
     # Create Experts.
     if prepare_finalize.activation_format == mk.FusedMoEActivationFormat.BatchedExperts:
