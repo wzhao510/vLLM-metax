@@ -18,12 +18,13 @@ def is_deepseek_mla(self) -> bool:
     if not hasattr(self.hf_text_config, "model_type"):
         return False
     elif self.hf_text_config.model_type in (
-        "AXK1",
+        "axk1",
         "deepseek_v2",
         "deepseek_v3",
         "deepseek_v32",
         "deepseek_v4",
         "deepseek_mtp",
+        "k3_dspark",
         # /------------------------ metax modified ------------------------\ #
         "joyai_llm_flash",  # # JoyAI_LLM_Flash
         # \----------------------------------------------------------------/ #
@@ -33,9 +34,11 @@ def is_deepseek_mla(self) -> bool:
         "kimi_k2",
         "kimi_linear",
         "longcat_flash",
+        "longcat_flash_ngram",
         "pangu_ultra_moe",
         "pangu_ultra_moe_mtp",
         "bailing_hybrid",
+        "bailing_hybrid_mtp",
     ):
         # check is deepseek_v4 model
         if hasattr(self.hf_text_config, "compress_ratios"):
@@ -48,7 +51,7 @@ def is_deepseek_mla(self) -> bool:
         return (
             self.hf_text_config.model.model_type
             in (
-                "AXK1",
+                "axk1",
                 "deepseek_v2",
                 "deepseek_v3",
                 "deepseek_v32",

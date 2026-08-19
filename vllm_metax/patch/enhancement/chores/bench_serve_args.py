@@ -19,6 +19,7 @@ from vllm.benchmarks.lib.endpoint_request_func import (
 from vllm_metax.patch.utils import patch
 
 
+@patch("vllm.benchmarks.serve")
 @patch("vllm.entrypoints.cli.benchmark.serve")
 def add_cli_args(parser: argparse.ArgumentParser):
     add_dataset_parser(parser)
@@ -149,6 +150,15 @@ def add_cli_args(parser: argparse.ArgumentParser):
         "A lower burstiness value (0 < burstiness < 1) results in more "
         "bursty requests. A higher burstiness value (burstiness > 1) "
         "results in a more uniform arrival of requests.",
+    )
+    parser.add_argument(
+        "--probe-request-rate",
+        type=float,
+        default=0.0,
+        help="If positive, send single-token text-only probe requests at "
+        "this rate (req/s) alongside the main workload, bypassing "
+        "--max-concurrency, and report their latency separately. Useful "
+        "for measuring how the main workload stalls unrelated requests.",
     )
     parser.add_argument(
         "--disable-tqdm",

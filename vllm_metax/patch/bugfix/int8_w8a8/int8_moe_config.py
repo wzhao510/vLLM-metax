@@ -28,8 +28,10 @@ from vllm.model_executor.layers.fused_moe.config import (
     FusedMoEQuantDesc,
 )
 from vllm.model_executor.layers.quantization.utils.quant_utils import GroupShape
+from vllm_metax.patch import patch
 
 
+@patch(target_module_path="vllm.model_executor.layers.fused_moe.config")
 def int8_w8a16_moe_quant_config(
     w1_scale: torch.Tensor,
     w2_scale: torch.Tensor,
@@ -63,6 +65,7 @@ def int8_w8a16_moe_quant_config(
     )
 
 
+@patch(target_module_path="vllm.model_executor.layers.fused_moe.config")
 def int8_w8a8_moe_quant_config(
     w1_scale: torch.Tensor,
     w2_scale: torch.Tensor,
@@ -97,7 +100,3 @@ def int8_w8a8_moe_quant_config(
         gemm1_clamp_limit=gemm1_clamp_limit,
         # └-------------------------------------------------------------┘
     )
-
-
-vllm_fused_moe_config.int8_w8a16_moe_quant_config = int8_w8a16_moe_quant_config
-vllm_fused_moe_config.int8_w8a8_moe_quant_config = int8_w8a8_moe_quant_config

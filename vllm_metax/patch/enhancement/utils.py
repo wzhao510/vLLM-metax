@@ -46,7 +46,6 @@ def _int8_quantize(
             # Dynamic per-tensor: compute scale then quantize via kernel
             A_scale = torch.clamp(A.abs().max() / 127.0, min=1e-10)
             A, A_scale, _ = ops.scaled_int8_quant(A, scale=A_scale)
-
     else:
         assert not per_act_token
         assert len(block_shape) == 2

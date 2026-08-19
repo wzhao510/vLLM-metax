@@ -14,6 +14,7 @@ from vllm.v1.sample.metadata import SamplingMetadata
 from vllm.v1.sample.rejection_sampler import (
     generate_uniform_probs,
     rejection_random_sample_kernel,
+    rejection_greedy_sample_kernel,
 )
 from vllm_metax.patch.utils import patch
 
@@ -194,63 +195,6 @@ def sample_recovered_tokens(
     return recovered_token_ids
 
 
-# NOTE(woosuk): Avoid specialization to prevent unnecessary recompilation.
-@patch("vllm.v1.sample.rejection_sampler", "rejection_greedy_sample_kernel")
-@triton.jit(do_not_specialize=["max_spec_len"])
-def rejection_greedy_sample_kernel(
-    output_token_ids_ptr,  # [batch_size, max_spec_len + 1]
-    cu_num_draft_tokens_ptr,  # [batch_size]
-    draft_token_ids_ptr,  # [num_tokens]
-    target_argmax_ptr,  # [num_tokens]
-    bonus_token_ids_ptr,  # [batch_size]
-    is_greedy_ptr,  # [batch_size] or None
-    max_spec_len,
-    uniform_probs_ptr,  # [num_tokens] or None (synthetic mode only)
-    synthetic_conditional_rates_ptr,  # [num_speculative_tokens] or None
-    SYNTHETIC_MODE: tl.constexpr,
-):
-    req_idx = tl.program_id(0)
-    # FIXME(woosuk): Because is_greedy_ptr is not None at profiling run,
-    # re-compilation may happen during runtime when is_greedy_ptr is None.
-    # /------------------------  Metax Modification -------------------------\
-    is_greedy = 1 if is_greedy_ptr is None else tl.load(is_greedy_ptr + req_idx)
-    if is_greedy == 0:
-        # Early exit for non-greedy sampling requests.
-        return
-    # \------------------------- Metax Modification -------------------------/
-
-    start_idx = 0 if req_idx == 0 else tl.load(cu_num_draft_tokens_ptr + req_idx - 1)
-    end_idx = tl.load(cu_num_draft_tokens_ptr + req_idx)
-    num_draft_tokens = end_idx - start_idx
-
-    rejected = False
-    for pos in range(num_draft_tokens):
-        if not rejected:
-            draft_token_id = tl.load(draft_token_ids_ptr + start_idx + pos)
-            target_argmax_id = tl.load(target_argmax_ptr + start_idx + pos).to(tl.int32)
-            if SYNTHETIC_MODE:
-                uniform_prob = tl.load(uniform_probs_ptr + start_idx + pos)
-                rate = tl.load(synthetic_conditional_rates_ptr + pos)
-                accepted = uniform_prob < rate
-                token_id = draft_token_id if accepted else target_argmax_id
-                rejected = not accepted
-            else:
-                token_id = target_argmax_id
-                rejected = draft_token_id != target_argmax_id
-            tl.store(
-                output_token_ids_ptr + req_idx * (max_spec_len + 1) + pos,
-                token_id,
-            )
-
-    if not rejected:
-        # If all tokens are accepted, append the bonus token.
-        bonus_token_id = tl.load(bonus_token_ids_ptr + req_idx)
-        tl.store(
-            output_token_ids_ptr + req_idx * (max_spec_len + 1) + num_draft_tokens,
-            bonus_token_id,
-        )
-
-
 @patch("vllm.v1.sample.rejection_sampler", "sample_recovered_tokens_kernel")
 @triton.jit
 def sample_recovered_tokens_kernel(
@@ -268,7 +212,11 @@ def sample_recovered_tokens_kernel(
 ):
     """Handles large vocabs by chunking to avoid memory constraints."""
     req_idx = tl.program_id(0)
-    start_idx = 0 if req_idx == 0 else tl.load(cu_num_draft_tokens_ptr + req_idx - 1)
+    start_idx = (
+        tl.zeros([], dtype=cu_num_draft_tokens_ptr.dtype.element_ty)
+        if req_idx == 0
+        else tl.load(cu_num_draft_tokens_ptr + req_idx - 1)
+    )
     end_idx = tl.load(cu_num_draft_tokens_ptr + req_idx)
     num_draft_tokens = end_idx - start_idx
 

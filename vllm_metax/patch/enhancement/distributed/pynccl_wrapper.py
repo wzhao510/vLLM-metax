@@ -33,6 +33,7 @@ import platform
 from typing import Any
 
 import vllm
+from vllm import envs
 from vllm.distributed.device_communicators.pynccl_wrapper import (
     Function,
     buffer_type,
