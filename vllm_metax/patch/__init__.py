@@ -14,7 +14,7 @@
 #             after a specific bug is fixed upstream).
 # -----------------------------------------------
 
-from utils import patch
+from .utils import patch
 
 __all__ = [
     "patch",

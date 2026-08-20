@@ -26,6 +26,7 @@ class MacaCommunicator(CudaCommunicator):
         global_ranks: list[int] | None = None,
         global_world_size: int | None = None,
         tcp_store_group: StatelessProcessGroup | None = None,
+        use_all2all: bool = False,
     ):
         super().__init__(
             cpu_group,
@@ -35,6 +36,7 @@ class MacaCommunicator(CudaCommunicator):
             global_ranks,
             global_world_size,
             tcp_store_group,
+            use_all2all=use_all2all,
         )
         # /------------------------  Metax Modification -------------------------\
         if self.use_all2all:
