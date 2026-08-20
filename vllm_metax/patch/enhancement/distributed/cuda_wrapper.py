@@ -33,6 +33,7 @@ cudaError_t = ctypes.c_int
 cudaMemcpyKind = ctypes.c_int
 
 
+@patch("vllm.distributed.device_communicators.cuda_wrapper", "cudaIpcMemHandle_t")
 class cudaIpcMemHandle_t(ctypes.Structure):
     _fields_ = [("internal", ctypes.c_byte * 128)]
 
@@ -64,6 +65,11 @@ class CudaRTLibrary:
             cudaError_t,
             [ctypes.POINTER(ctypes.c_void_p), ctypes.c_size_t],
         ),
+        Function(
+            "mcExtMallocWithFlags",
+            cudaError_t,
+            [ctypes.POINTER(ctypes.c_void_p), ctypes.c_size_t, ctypes.c_uint],
+        ),
         # ​cudaError_t 	cudaFree ( void* devPtr )
         Function("cudaFree", cudaError_t, [ctypes.c_void_p]),
         # ​cudaError_t cudaMemset ( void* devPtr, int  value, size_t count )
@@ -88,6 +94,12 @@ class CudaRTLibrary:
             cudaError_t,
             [ctypes.POINTER(ctypes.c_void_p), cudaIpcMemHandle_t, ctypes.c_uint],
         ),
+        # cudaError_t cudaIpcCloseMemHandle ( void* devPtr ) # noqa
+        Function(
+            "cudaIpcCloseMemHandle",
+            cudaError_t,
+            [ctypes.c_void_p],
+        ),
     ]
 
     # https://rocm.docs.amd.com/projects/HIPIFY/en/latest/tables/CUDA_Runtime_API_functions_supported_by_HIP.html # noqa
@@ -102,6 +114,8 @@ class CudaRTLibrary:
         "cudaMemcpy": "mcMemcpy",
         "cudaIpcGetMemHandle": "mcIpcGetMemHandle",
         "cudaIpcOpenMemHandle": "mcIpcOpenMemHandle",
+        "cudaIpcCloseMemHandle": "mcIpcCloseMemHandle",
+        "mcExtMallocWithFlags": "mcExtMallocWithFlags",
     }
 
     # class attribute to store the mapping from the path to the library
@@ -171,6 +185,26 @@ class CudaRTLibrary:
         self.CUDART_CHECK(self.funcs["cudaMalloc"](ctypes.byref(devPtr), size))
         return devPtr
 
+    def mcExtMallocWithFlags(self, size: int, flag: int) -> ctypes.c_void_p:
+        # define mcDeviceMallocDefault           0x0
+        # define mcDeviceMallocFinegrained       0x1 ///< Memory is allocated in fine grained region of device.
+        # define mcDeviceMallocWriteCoherence    0x3 ///< Memory represents a WriteCoherence memory.
+        # define mcDeviceMallocMapPcieDefault    0x4 ///< Uncache Memory is mapped to pcie access if metalink available.
+        # define mcDeviceMallocMapPcieCoherence  0x5 ///< WriteCoherence Memory is mapped to pcie access if metalink available.
+        # define mcDeviceMallocFixedMemDefault   0x6 ///< Uncache Memory in fixed memory region.
+        # define mcDeviceMallocFixedMemCoherence 0x7 ///< WriteCoherence Memory in fixed memory region.
+
+        if "mcExtMallocWithFlags" not in self.funcs:
+            raise RuntimeError(
+                f"Function mcExtMallocWithFlags not found, wrong runtime lib?"
+            )
+
+        devPtr = ctypes.c_void_p()
+        self.CUDART_CHECK(
+            self.funcs["mcExtMallocWithFlags"](ctypes.byref(devPtr), size, flag)
+        )
+        return devPtr
+
     def cudaFree(self, devPtr: ctypes.c_void_p) -> None:
         self.CUDART_CHECK(self.funcs["cudaFree"](devPtr))
 
@@ -178,10 +212,12 @@ class CudaRTLibrary:
         self.CUDART_CHECK(self.funcs["cudaMemset"](devPtr, value, count))
 
     def cudaMemcpy(
-        self, dst: ctypes.c_void_p, src: ctypes.c_void_p, count: int
+        self,
+        dst: ctypes.c_void_p,
+        src: ctypes.c_void_p,
+        count: int,
+        kind: int = 4,  # cudaMemcpyDefault
     ) -> None:
-        cudaMemcpyDefault = 4
-        kind = cudaMemcpyDefault
         self.CUDART_CHECK(self.funcs["cudaMemcpy"](dst, src, count, kind))
 
     def cudaIpcGetMemHandle(self, devPtr: ctypes.c_void_p) -> cudaIpcMemHandle_t:
@@ -193,10 +229,14 @@ class CudaRTLibrary:
 
     def cudaIpcOpenMemHandle(self, handle: cudaIpcMemHandle_t) -> ctypes.c_void_p:
         cudaIpcMemLazyEnablePeerAccess = 1
+        mcIpcMemLazyEnablePeerAccess = 0
         devPtr = ctypes.c_void_p()
         self.CUDART_CHECK(
             self.funcs["cudaIpcOpenMemHandle"](
-                ctypes.byref(devPtr), handle, cudaIpcMemLazyEnablePeerAccess
+                ctypes.byref(devPtr), handle, mcIpcMemLazyEnablePeerAccess
             )
         )
         return devPtr
+
+    def cudaIpcCloseMemHandle(self, devPtr: ctypes.c_void_p):
+        self.CUDART_CHECK(self.funcs["cudaIpcCloseMemHandle"](devPtr))
