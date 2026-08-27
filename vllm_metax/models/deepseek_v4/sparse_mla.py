@@ -24,12 +24,11 @@ class MacaDeepseekV4FlashMLABackend(DeepseekV4FlashMLABackend):
     """
 
     supported_dtypes: ClassVar[list[torch.dtype]] = [torch.bfloat16]
-    supported_kv_cache_dtypes: ClassVar[list[CacheDType]] = [
-        "auto",
-        "bfloat16",
-        "fp8_ds_mla",
-        "fp8",  # alias for fp8_ds_mla
-    ]
+    supported_kv_cache_dtypes: ClassVar[list[CacheDType]] = ["auto", "bfloat16"]
+    # if native_fp8_enabled():
+    #     supported_kv_cache_dtypes.extend(
+    #         ["fp8_ds_mla", "fp8"]  # type: ignore[list-item]
+    #     )
 
     @classmethod
     def supports_compute_capability(cls, capability: DeviceCapability) -> bool:

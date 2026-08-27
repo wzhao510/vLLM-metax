@@ -2,7 +2,7 @@
 # 2026 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. All Rights Reserved.
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import torch
 
@@ -22,6 +22,11 @@ from vllm.models.deepseek_v4.compressor import (
 from vllm_metax.models.deepseek_v4.common.ops.fused_compress_quant_cache import (
     compress_norm_rope_store_triton,
 )
+
+if TYPE_CHECKING:
+    from vllm.models.deepseek_v4.eager_scratch import DeepseekV4EagerScratchPool
+
+
 class MacaDeepseekCompressor(DeepseekCompressor):
     def __init__(
         self,
@@ -33,8 +38,19 @@ class MacaDeepseekCompressor(DeepseekCompressor):
         prefix: str = "",
         k_cache_prefix="",
         use_fp4_cache: bool = False,
+        eager_scratch_pool: "DeepseekV4EagerScratchPool | None" = None,
     ):
-        super().__init__(vllm_config, compress_ratio, hidden_size, head_dim, rotate, prefix, k_cache_prefix, use_fp4_cache)
+        super().__init__(
+            vllm_config,
+            compress_ratio,
+            hidden_size,
+            head_dim,
+            rotate,
+            prefix,
+            k_cache_prefix,
+            use_fp4_cache,
+            eager_scratch_pool,
+        )
         self.use_fp8_indexer = vllm_config.attention_config.indexer_kv_dtype == "fp8"
         self.use_fp8_kvcache = vllm_config.cache_config.cache_dtype.startswith("fp8")
 

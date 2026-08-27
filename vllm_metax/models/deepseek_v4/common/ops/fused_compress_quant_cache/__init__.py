@@ -3,23 +3,24 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 """MetaX DeepSeek V4 compressor cache-store launcher.
 
-The main compressed-attention cache is BF16. The Lightning Indexer cache is
-INT8 with a block-segregated FP32 scale tail. FP8 and FP4 are rejected before
-kernel selection.
+The current profile stores the main compressed-attention cache in BF16 and the
+Lightning Indexer cache in INT8. The upstream FP8 kernels remain available to
+the separately gated native-FP8 profile.
 """
 
 from typing import Any
 
 import torch
 
-from vllm.triton_utils import triton
-
-from .bf16 import _fused_kv_compress_norm_rope_insert_sparse_attn_bf16
-from .int8 import _fused_kv_compress_norm_rope_insert_indexer_attn_int8
 from vllm.models.deepseek_v4.common.ops.fused_compress_quant_cache import (
     _fused_kv_compress_norm_rope_insert_sparse_attn,
     _fused_kv_compress_norm_rope_insert_indexer_attn,
 )
+from vllm.triton_utils import triton
+
+from .bf16 import _fused_kv_compress_norm_rope_insert_sparse_attn_bf16
+from .int8 import _fused_kv_compress_norm_rope_insert_indexer_attn_int8
+
 
 def compress_norm_rope_store_triton(
     state_cache: torch.Tensor,
@@ -55,19 +56,22 @@ def compress_norm_rope_store_triton(
     if head_dim == 512:
         if use_fp8_kvcache:
             kernel = _fused_kv_compress_norm_rope_insert_sparse_attn
-            scale_kargs = {"FP8_MAX":448.0}
+            scale_kargs = {"FP8_MAX": 448.0}
         else:
             kernel = _fused_kv_compress_norm_rope_insert_sparse_attn_bf16
-            scale_kargs = {"INT8_MAX":127.0}
+            token_stride = kv_cache.stride(1)
+            scale_kargs = {"INT8_MAX": 127.0}
         num_warps = 4
-    else: # head_dim == 128
+    elif head_dim == 128:
         if use_fp8_indexer:
             kernel = _fused_kv_compress_norm_rope_insert_indexer_attn
-            scale_kargs = {"FP8_MAX":448.0}
+            scale_kargs = {"FP8_MAX": 448.0}
         else:
             kernel = _fused_kv_compress_norm_rope_insert_indexer_attn_int8
-            scale_kargs = {"INT8_MAX":127.0}
+            scale_kargs = {"INT8_MAX": 127.0}
         num_warps = 1
+    else:
+        raise ValueError(f"Unsupported DeepSeek V4 cache head_dim={head_dim}.")
 
     kernel[(num_actual,)](
         # state cache
@@ -108,6 +112,4 @@ def compress_norm_rope_store_triton(
     )
 
 
-__all__ = [
-    "compress_norm_rope_store_triton"
-]
+__all__ = ["compress_norm_rope_store_triton"]

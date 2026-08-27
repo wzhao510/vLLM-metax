@@ -256,7 +256,7 @@ class MacaDeepseekV4FlashMLAAttention(MacaDeepseekV4Attention):
             head_dim_v=512,
             tile_scheduler_metadata=tile_metadata,
             cache_seqlens=None,
-            is_fp8_kvcache= self.kv_cache_dtype == "fp8_ds_mla",
+            is_fp8_kvcache=self.kv_cache_dtype == "fp8_ds_mla",
             indices=swa_indices,
             topk_length=swa_lens,
             softmax_scale=self.scale,
@@ -319,7 +319,11 @@ class MacaDeepseekV4FlashMLAAttention(MacaDeepseekV4Attention):
         workspace_manager = current_workspace_manager()
         combined_topk = round_up(top_k + self.window_size, 128)
 
-        gather_kernel = dequantize_and_gather_k_cache if self.kv_cache_dtype == "fp8_ds_mla" else gather_k_cache
+        gather_kernel = (
+            dequantize_and_gather_k_cache
+            if self.kv_cache_dtype == "fp8_ds_mla"
+            else gather_k_cache
+        )
 
         for chunk_start, chunk_end, chunk_N, chunk_M in chunk_plan:
             chunk_size = chunk_end - chunk_start
