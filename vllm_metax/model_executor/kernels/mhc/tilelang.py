@@ -750,6 +750,7 @@ def _hc_head_fused_kernel_tilelang_fake(
     )
 
 
+# Only AMD-style mhc used these custom_ops
 direct_register_custom_op(
     op_name="mx_mhc_pre_tilelang",
     op_func=mhc_pre_tilelang,
@@ -764,13 +765,14 @@ direct_register_custom_op(
 )
 
 direct_register_custom_op(
-    op_name="mx_mhc_fused_post_pre",
+    op_name="mx_mhc_fused_post_pre_tilelang",
     op_func=mhc_fused_post_pre_tilelang,
     mutates_args=[],
     fake_impl=_mhc_fused_post_pre_tilelang_fake,
 )
+
 direct_register_custom_op(
-    op_name="mx_hc_head_fused_kernel",
+    op_name="mx_hc_head_fused_kernel_tilelang",
     op_func=hc_head_fused_kernel_tilelang,
     mutates_args=[],
     fake_impl=_hc_head_fused_kernel_tilelang_fake,
