@@ -19,7 +19,7 @@ from vllm.models.deepseek_v4.compressor import (
     DeepseekCompressor,
 )
 
-from vllm_metax.models.deepseek_v4.common.ops.fused_compress_quant_cache.default import (
+from vllm_metax.models.deepseek_v4.common.ops.fused_compress_quant_cache import (
     compress_norm_rope_store_triton,
 )
 class MacaDeepseekCompressor(DeepseekCompressor):

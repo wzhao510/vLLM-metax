@@ -1,10 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # 2026 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. All Rights Reserved.
-from typing import Any
-
 import torch
 from vllm.triton_utils import tl, triton
-
 
 @triton.jit
 def _gather_k_cache_kernel(
@@ -12,8 +9,6 @@ def _gather_k_cache_kernel(
     out_stride0: tl.constexpr,
     out_stride1: tl.constexpr,
     k_cache_ptr,
-    k_cache_stride0: tl.constexpr,
-    k_cache_stride1: tl.constexpr,
     seq_lens_ptr,
     block_table_ptr,
     offset: tl.constexpr,
@@ -21,6 +16,7 @@ def _gather_k_cache_kernel(
     # constexpr
     max_blocks_per_seq: tl.constexpr,
     cache_block_size: tl.constexpr,
+    block_stride: tl.constexpr,  # physical element stride between cache blocks
     head_size: tl.constexpr,
     BLOCK_D: tl.constexpr,
 ):
@@ -51,13 +47,12 @@ def _gather_k_cache_kernel(
         block_table_row_ptr = block_table_ptr + batch_idx * max_blocks_per_seq
         physical_block_idx = tl.load(block_table_row_ptr + block_in_seq)
 
-        # A 0.27 packed-cache layer view can have a physical block stride much
-        # larger than cache_block_size * head_size. Always address through the
-        # concrete tensor strides; only the last dimension is contiguous.
+        # k_cache layout:
+        # [num_blocks, cache_block_size, head_size]
         k_ptr = (
             k_cache_ptr
-            + physical_block_idx.to(tl.int64) * k_cache_stride0
-            + pos_in_block * k_cache_stride1
+            + physical_block_idx.to(tl.int64) * block_stride
+            + pos_in_block * head_size
             + dim_offsets
         )
 
@@ -86,27 +81,6 @@ def gather_k_cache(
     block_size: int,
     offset: int,
 ) -> None:
-    if k_cache.ndim != 3 or k_cache.stride(2) != 1:
-        raise ValueError(
-            "DeepSeek V4 BF16 gather expects a 3D cache with a contiguous "
-            f"head dimension; got shape={tuple(k_cache.shape)}, "
-            f"stride={k_cache.stride()}."
-        )
-    if k_cache.dtype != torch.bfloat16:
-        raise ValueError(
-            f"DeepSeek V4 MetaX gather requires BF16 K cache; got {k_cache.dtype}."
-        )
-    if k_cache.shape[1] != block_size:
-        raise ValueError(
-            f"K-cache block dimension {k_cache.shape[1]} does not match "
-            f"metadata block_size={block_size}."
-        )
-    if out.ndim != 3 or out.shape[2] != k_cache.shape[2] or out.stride(2) != 1:
-        raise ValueError(
-            "DeepSeek V4 gather output must be [num_reqs, tokens, head_size] "
-            "with a contiguous head dimension."
-        )
-
     num_reqs = seq_lens.shape[0]
     head_size = k_cache.shape[2]
 
@@ -124,14 +98,13 @@ def gather_k_cache(
         out.stride(0),
         out.stride(1),
         k_cache,
-        k_cache.stride(0),
-        k_cache.stride(1),
         seq_lens,
         block_table,
         offset,
         gather_lens,
         max_blocks_per_seq=block_table.shape[-1],
         cache_block_size=block_size,
+        block_stride=k_cache.stride(0),
         head_size=head_size,
         BLOCK_D=BLOCK_D,
     )
