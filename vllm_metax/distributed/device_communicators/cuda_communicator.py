@@ -51,6 +51,16 @@ class MacaCommunicator(CudaCommunicator):
                     "Maca override AgRsAll2AllManager to %s for better performance.",
                     self.all2all_manager.__class__.__name__,
                 )
+            elif self.all2all_backend == "deepep_high_throughput":
+                from .all2all import MacaDeepEPHTAll2AllManager
+
+                self.all2all_manager = MacaDeepEPHTAll2AllManager(
+                    self.cpu_group, tcp_store_group
+                )
+                logger.info_once(
+                    "Maca override DeepEPHTAll2AllManager to %s for better performance or compatibility.",
+                    self.all2all_manager.__class__.__name__,
+                )
             elif self.all2all_backend == "deepep_low_latency":
                 from .all2all import MacaDeepEPLLAll2AllManager
 
@@ -58,7 +68,7 @@ class MacaCommunicator(CudaCommunicator):
                     self.cpu_group, tcp_store_group
                 )
                 logger.info_once(
-                    "Maca override DeepEPLLAll2AllManager to %s for better performance.",
+                    "Maca override DeepEPLLAll2AllManager to %s for better performance or compatibility.",
                     self.all2all_manager.__class__.__name__,
                 )
         # \------------------------  Metax Modification -------------------------/
