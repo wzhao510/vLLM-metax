@@ -64,7 +64,7 @@ __device__ __forceinline__ auto convert_to_uint8(float x) -> uint8_t {
 // Vectorized load helpers
 // ============================================================================
 
-// Unconditional float4 load.
+// Unconditional float4 load with cache hint (.cg = cache at global level only).
 __device__ __forceinline__ void load_float4(const float* ptr, float& v0,
                                             float& v1, float& v2, float& v3) {
   const float4 values = *reinterpret_cast<const float4*>(ptr);

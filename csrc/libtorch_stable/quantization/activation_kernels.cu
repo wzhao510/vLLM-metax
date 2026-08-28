@@ -149,26 +149,14 @@ __device__ __forceinline__ void cp_async4(T* _smem_ptr, const U* _glob_ptr) {
 }
 
 __device__ __forceinline__ void cp_async_fence() {
-#if __CUDACC_VER_MAJOR__ >= 11 && __CUDA_ARCH__ >= 800
-  asm volatile("cp.async.commit_group;\n" ::);
-#else
-#endif
 }
 
 template <int N>
 __device__ __forceinline__ void cp_async_wait() {
-#if __CUDACC_VER_MAJOR__ >= 11 && __CUDA_ARCH__ >= 800
-  asm volatile("cp.async.wait_group %0;\n" ::"n"(N));
-#else
-#endif
 }
 
 template <>
 __device__ __forceinline__ void cp_async_wait<0>() {
-#if __CUDACC_VER_MAJOR__ >= 11 && __CUDA_ARCH__ >= 800
-  asm volatile("cp.async.wait_all;\n" ::);
-#else
-#endif
 }
 
 __device__ __forceinline__ float clip(float v, float mmin, float mmax) {
@@ -284,10 +272,10 @@ __global__ void silu_mul_fp8_quant_deep_gemm_kernel(
   int* s_expert_offsets =
       reinterpret_cast<int*>(smem_128 + (SMEM_SIZE_BYTES_Y / 16));
 
-  static constexpr __nv_bfloat16 fp8_min = get_fp8_min<fp8_type>();
-  static constexpr __nv_bfloat16 fp8_max = get_fp8_max<fp8_type>();
+  static const __nv_bfloat16 fp8_min = get_fp8_min<fp8_type>();
+  static const __nv_bfloat16 fp8_max = get_fp8_max<fp8_type>();
   // We assign EPS with it's 16-bit unsigned counterpart to allow constexpr.
-  static constexpr __nv_bfloat16 EPS = (__nv_bfloat16_raw{.x = 11996});
+  static const __nv_bfloat16 EPS = (__nv_bfloat16_raw{.x = 11996});
   int tid = threadIdx.x;
   int warp_id = tid >> 5;
   int lane_id = tid & 0x1f;
@@ -589,7 +577,7 @@ void persistent_masked_m_silu_mul_quant(
     torch::stable::Tensor& y_q,                      // (E, T, H) [OUT]
     torch::stable::Tensor& y_s,  // (E, T, H//group_size) [OUT]
     bool cast_scale_ue8m0) {
-#ifndef USE_MACA
+#ifndef USE_ROCM
 
   // This kernel currently only supports H % 128 == 0 and assumes a
   // fixed GROUP_SIZE of 128.

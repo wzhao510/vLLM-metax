@@ -599,7 +599,7 @@ static void launchFusedDeepseekV4Templated(
   // PDL: enable programmatic stream serialization whenever the hardware
   // supports it (SM90+).  On pre-Hopper GPUs the attribute is unavailable,
   // so leave numAttrs = 0 and launch as a regular kernel.
-#if !defined(USE_ROCM) && !defined(USE_MACA)
+#ifndef USE_ROCM
   static int const sm_version = getSMVersion();
   // Host-side guard: the device kernel body is compiled as a no-op for
   // bf16 on pre-Ampere (sm_70/sm_75) because _typeConvert<BFloat16> is
@@ -640,7 +640,7 @@ static void launchFusedDeepseekV4Templated(
         kv_block_stride);
   }
 #else
-  // ROCm/MACA: use standard kernel launch syntax (no PDL/stream serialization).
+  // ROCm: use standard kernel launch syntax (no PDL/stream serialization)
   // clang-format off
   fusedDeepseekV4QNormRopeKVRopeQuantInsertKernel<scalar_t_in, kNumHeadsQPadded>
       <<<grid, kBlockSize, 0, stream>>>(
@@ -908,7 +908,7 @@ static void launchFullCacheKernel(
       static_cast<int>((total_warps + kWarpsPerBlock - 1) / kWarpsPerBlock);
   auto* kernel =
       fusedDeepseekV4FullCacheKernel<scalar_t_in, STORE_Q_FP8, STORE_KV_FP8>;
-#if !defined(USE_ROCM) && !defined(USE_MACA)
+#ifndef USE_ROCM
   static int const sm_version = getSMVersion();
   STD_TORCH_CHECK(sm_version >= 80, op_name,
                   " requires sm_80+ (Ampere or newer); got sm_", sm_version);
@@ -942,9 +942,10 @@ static void launchFullCacheKernel(
 // ────────────────────────────────────────────────────────────────────────────
 // Torch op wrapper
 // ────────────────────────────────────────────────────────────────────────────
-torch::stable::Tensor fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert(
+void fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert_out(
     torch::stable::Tensor const& q_in,           // [N, num_heads_q, 512] bf16
     torch::stable::Tensor const& kv,             // [N, 512] bf16 (read-only)
+    torch::stable::Tensor& q_out,                // [N, q_head_padded, 512]
     torch::stable::Tensor& k_cache,              // [num_blocks, block_bytes] uint8
     torch::stable::Tensor const& slot_mapping,   // [N] int64
     torch::stable::Tensor const& position_ids,   // [N] int64
@@ -970,8 +971,16 @@ torch::stable::Tensor fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert(
   STD_TORCH_CHECK(kv.dim() == 2 && kv.size(1) == 512, "kv shape [N, 512]");
   STD_TORCH_CHECK(q_in.scalar_type() == kv.scalar_type(),
                   "q_in and kv dtype must match");
+  STD_TORCH_CHECK(q_out.device() == q_in.device() && q_out.is_contiguous(),
+                  "q_out must be contiguous and on the same device as q_in");
+  STD_TORCH_CHECK(q_out.scalar_type() == q_in.scalar_type(),
+                  "q_out dtype must match q_in");
   STD_TORCH_CHECK(q_head_padded >= q_in.size(1),
                   "q_head_padded must be >= q_in.size(1) (num_heads_q)");
+  STD_TORCH_CHECK(q_out.dim() == 3 && q_out.size(0) == q_in.size(0) &&
+                      q_out.size(1) == q_head_padded &&
+                      q_out.size(2) == q_in.size(2),
+                  "q_out shape [N, q_head_padded, 512]");
   STD_TORCH_CHECK(k_cache.scalar_type() == torch::headeronly::ScalarType::Byte,
                   "k_cache must be uint8");
   STD_TORCH_CHECK(cos_sin_cache.dim() == 2 && cos_sin_cache.size(1) == 64,
@@ -999,11 +1008,6 @@ torch::stable::Tensor fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert(
       q_in.get_device_index());
   const cudaStream_t stream = get_current_cuda_stream(q_in.get_device_index());
 
-  // Allocate the padded q output.  The kernel writes every element (live
-  // region gets RMSNorm+RoPE; pad region gets zeros), so `empty` is safe.
-  auto q_out = torch::stable::new_empty(
-      q_in, {q_in.size(0), q_head_padded, q_in.size(2)}, q_in.scalar_type());
-
   VLLM_STABLE_DISPATCH_HALF_TYPES(
       q_in.scalar_type(), "fused_deepseek_v4_qnorm_rope_kv_insert", [&] {
         using qkv_scalar_t = scalar_t;
@@ -1020,6 +1024,20 @@ torch::stable::Tensor fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert(
                 num_heads_q_padded, cache_block_size_i, kv_block_stride,
                 stream);
       });
+}
+
+torch::stable::Tensor fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert(
+    torch::stable::Tensor const& q_in, torch::stable::Tensor const& kv,
+    torch::stable::Tensor& k_cache,
+    torch::stable::Tensor const& slot_mapping,
+    torch::stable::Tensor const& position_ids,
+    torch::stable::Tensor const& cos_sin_cache, int64_t q_head_padded,
+    double eps, int64_t cache_block_size) {
+  auto q_out = torch::stable::new_empty(
+      q_in, {q_in.size(0), q_head_padded, q_in.size(2)}, q_in.scalar_type());
+  fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert_out(
+      q_in, kv, q_out, k_cache, slot_mapping, position_ids, cos_sin_cache,
+      q_head_padded, eps, cache_block_size);
   return q_out;
 }
 

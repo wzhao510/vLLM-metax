@@ -3,7 +3,8 @@
 #include "mctlass/mctlass.h"
 #include <climits>
 #include "cuda_runtime.h"
-#include <iostream>
+#include <cstdio>
+#include <cstdlib>
 
 #include <torch/headeronly/util/shim_utils.h>
 

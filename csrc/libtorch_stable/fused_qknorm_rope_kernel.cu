@@ -22,7 +22,7 @@
 
 #include "async_util.cuh"
 #include "../cuda_compat.h"
-#include "../type_convert.cuh"
+#include "type_convert.cuh"
 #include "dispatch_utils.h"
 
 #define CHECK_TYPE(x, st)                                                  \
@@ -114,7 +114,7 @@ __global__ void fusedQKNormRopeKernel(
     int const num_tokens,            // Number of tokens
     int const rotary_dim             // Dimension for RoPE
 ) {
-#if (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ < 800) && !defined(USE_ROCM)
+#ifdef USE_MACA
   if constexpr ((std::is_same_v<scalar_t_in, c10::BFloat16>) ||
                 std::is_same_v<scalar_t_cache, c10::BFloat16>) {
     return;
@@ -300,7 +300,7 @@ __global__ void fusedQKNormRopeKernel(
       *reinterpret_cast<vec_T*>(&qkv[offsetThread]) = vec;
     }
 
-#if (!defined(__CUDA_ARCH__) || __CUDA_ARCH__ < 800) && !defined(USE_ROCM)
+#ifdef USE_MACA
   }
 #endif
 }

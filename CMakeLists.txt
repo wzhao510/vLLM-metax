@@ -85,6 +85,7 @@ find_program(NVCC_EXECUTABLE nvcc)
 if (CUDA_FOUND AND NOT NVCC_EXECUTABLE)
     message(FATAL_ERROR "nvcc not found")
 endif()
+
 #
 # Import torch cmake configuration.
 # Torch also imports CUDA (and partially HIP) languages with some customizations,
@@ -203,31 +204,33 @@ endif()
 # _C_stable_libtorch extension (ops registered via STABLE_TORCH_LIBRARY)
 #
 set(VLLM_STABLE_EXT_SRC
-  "csrc/libtorch_stable/torch_bindings.cpp"
-  "csrc/libtorch_stable/activation_kernels.cu"
-  "csrc/libtorch_stable/quantization/activation_kernels.cu"
-  "csrc/libtorch_stable/quantization/w8a8/int8/scaled_quant.cu"
-  "csrc/libtorch_stable/quantization/w8a8/fp8/common.cu"
-  "csrc/libtorch_stable/quantization/w8a8/fp8/per_token_group_quant.cu"
-  "csrc/libtorch_stable/quantization/w8a8/int8/per_token_group_quant.cu"
-  "csrc/libtorch_stable/permute_cols.cu"
-  "csrc/libtorch_stable/quantization/gptq/q_gemm.cu"
-  "csrc/libtorch_stable/pos_encoding_kernels.cu"
-  "csrc/libtorch_stable/fused_qknorm_rope_kernel.cu"
-  "csrc/libtorch_stable/fused_minimax_m3_qknorm_rope_kv_insert_kernel.cu"
-  "csrc/libtorch_stable/layernorm_kernels.cu"
-  "csrc/libtorch_stable/layernorm_quant_kernels.cu"
-  "csrc/libtorch_stable/quantization/fused_kernels/fused_layernorm_dynamic_per_token_quant.cu"
-  "csrc/libtorch_stable/quantization/fused_kernels/fused_silu_mul_block_quant.cu"
-  "csrc/libtorch_stable/attention/merge_attn_states.cu"
-  "csrc/libtorch_stable/sampler.cu"
-  "csrc/libtorch_stable/topk.cu"
-  "csrc/libtorch_stable/mamba/selective_scan_fwd.cu"
-  "csrc/libtorch_stable/attention/paged_attention_v1.cu"
-  "csrc/libtorch_stable/attention/paged_attention_v2.cu"
-  "csrc/libtorch_stable/cache_kernels.cu"
-  "csrc/libtorch_stable/cache_kernels_fused.cu"
+    "csrc/libtorch_stable/torch_bindings.cpp"
+    # "csrc/libtorch_stable/cuda_view.cu"
+    "csrc/libtorch_stable/cuda_utils_kernels.cu"
+    "csrc/libtorch_stable/activation_kernels.cu"
+    "csrc/libtorch_stable/ngram_embedding_kernels.cu"
+    "csrc/libtorch_stable/quantization/activation_kernels.cu"
+    "csrc/libtorch_stable/quantization/w8a8/int8/scaled_quant.cu"
+    "csrc/libtorch_stable/quantization/w8a8/fp8/common.cu"
+    "csrc/libtorch_stable/quantization/w8a8/fp8/per_token_group_quant.cu"
+    "csrc/libtorch_stable/quantization/w8a8/int8/per_token_group_quant.cu"
+    "csrc/libtorch_stable/permute_cols.cu"
+    "csrc/libtorch_stable/quantization/gptq/q_gemm.cu"
+    "csrc/libtorch_stable/pos_encoding_kernels.cu"
+    "csrc/libtorch_stable/fused_qknorm_rope_kernel.cu"
+    "csrc/libtorch_stable/fused_minimax_m3_qknorm_rope_kv_insert_kernel.cu"
+    "csrc/libtorch_stable/layernorm_kernels.cu"
+    "csrc/libtorch_stable/layernorm_quant_kernels.cu"
+    "csrc/libtorch_stable/quantization/fused_kernels/fused_layernorm_dynamic_per_token_quant.cu"
+    "csrc/libtorch_stable/quantization/fused_kernels/fused_silu_mul_block_quant.cu"
+    "csrc/libtorch_stable/attention/merge_attn_states.cu"
+    "csrc/libtorch_stable/sampler.cu"
+    "csrc/libtorch_stable/topk.cu"
+    "csrc/libtorch_stable/mamba/selective_scan_fwd.cu"
+    "csrc/libtorch_stable/cache_kernels.cu"
+    "csrc/libtorch_stable/cache_kernels_fused.cu"
   "csrc/libtorch_stable/fused_deepseek_v4_qnorm_rope_kv_insert_kernel.cu"
+  "csrc/libtorch_stable/fused_kimi_k3_mla_key_concat_kv_cache_kernel.cu"
   "csrc/libtorch_stable/fused_deepseek_v4_qnorm_rope_kv_insert_kernel_bf16.cu")
 
 # support opt of gptq-marlin
@@ -238,49 +241,47 @@ set_source_files_properties(
 )
 
 if(VLLM_GPU_LANG STREQUAL "CUDA")
-  SET(CUTLASS_ENABLE_HEADERS_ONLY ON CACHE BOOL "Enable only the header library")
+    SET(CUTLASS_ENABLE_HEADERS_ONLY ON CACHE BOOL "Enable only the header library")
 
-  # Set CUTLASS_REVISION. Used for FetchContent. Also fixes some bogus messages when building.
-  set(CUTLASS_REVISION "v3.9.2" CACHE STRING "CUTLASS revision to use")
+    # Set CUTLASS_REVISION. Used for FetchContent. Also fixes some bogus messages when building.
+    set(CUTLASS_REVISION "v3.9.2" CACHE STRING "CUTLASS revision to use")
 
-  # Use the specified CUTLASS source directory for compilation if VLLM_CUTLASS_SRC_DIR is provided
-  if (DEFINED ENV{VLLM_CUTLASS_SRC_DIR})
-    set(VLLM_CUTLASS_SRC_DIR $ENV{VLLM_CUTLASS_SRC_DIR})
-  endif()
+    # Use the specified CUTLASS source directory for compilation if VLLM_CUTLASS_SRC_DIR is provided
+    if (DEFINED ENV{VLLM_CUTLASS_SRC_DIR})
+      set(VLLM_CUTLASS_SRC_DIR $ENV{VLLM_CUTLASS_SRC_DIR})
+    endif()
 
-  # Substitute CUTLASS with MATLASS 
-  message(WARNING "Use MACA, Overwrite VLLM_CUTLASS_SRC_DIR.")
-  set(VLLM_CUTLASS_SRC_DIR $ENV{MACA_PATH}/include)
+    # Substitute CUTLASS with MATLASS 
+    message(WARNING "Use MACA, Overwrite VLLM_CUTLASS_SRC_DIR.")
+    set(VLLM_CUTLASS_SRC_DIR $ENV{MACA_PATH}/include)
 
-  if(NOT IS_ABSOLUTE VLLM_CUTLASS_SRC_DIR)
-    get_filename_component(VLLM_CUTLASS_SRC_DIR "${VLLM_CUTLASS_SRC_DIR}" ABSOLUTE)
-  endif()
-  message(STATUS "The VLLM_CUTLASS_SRC_DIR is set, using ${VLLM_CUTLASS_SRC_DIR} for compilation")
-  FetchContent_Declare(cutlass SOURCE_DIR ${VLLM_CUTLASS_SRC_DIR})
+    if(NOT IS_ABSOLUTE VLLM_CUTLASS_SRC_DIR)
+      get_filename_component(VLLM_CUTLASS_SRC_DIR "${VLLM_CUTLASS_SRC_DIR}" ABSOLUTE)
+    endif()
+    message(STATUS "The VLLM_CUTLASS_SRC_DIR is set, using ${VLLM_CUTLASS_SRC_DIR} for compilation")
+    FetchContent_Declare(cutlass SOURCE_DIR ${VLLM_CUTLASS_SRC_DIR})
 
-  list(APPEND VLLM_STABLE_EXT_SRC
-    # "csrc/libtorch_stable/cuda_view.cu"
-    "csrc/libtorch_stable/cuda_utils_kernels.cu"
-    "csrc/libtorch_stable/cutlass_extensions/common.cpp"
-    "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_entry.cu"
-    # "csrc/libtorch_stable/quantization/fp4/nvfp4_quant_entry.cu"
-    "csrc/libtorch_stable/quantization/fp4/nvfp4_scaled_mm_entry.cu"
-    "csrc/libtorch_stable/quantization/awq/gemm_kernels.cu"
-    "csrc/libtorch_stable/minimax_reduce_rms_kernel.cu")
+    list(APPEND VLLM_STABLE_EXT_SRC
+      "csrc/libtorch_stable/cutlass_extensions/common.cpp"
+      "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_entry.cu"
+      # "csrc/libtorch_stable/quantization/fp4/nvfp4_quant_entry.cu"
+      "csrc/libtorch_stable/quantization/fp4/nvfp4_scaled_mm_entry.cu"
+      "csrc/libtorch_stable/quantization/awq/gemm_kernels.cu"
+      "csrc/libtorch_stable/minimax_reduce_rms_kernel.cu")
 
-  set_gencode_flags_for_srcs(
-    SRCS "${VLLM_STABLE_EXT_SRC}"
-    CUDA_ARCHS "${CUDA_ARCHS}")
+    set_gencode_flags_for_srcs(
+      SRCS "${VLLM_STABLE_EXT_SRC}"
+      CUDA_ARCHS "${CUDA_ARCHS}")
 
-  # support opt of gptq-marlin
-  set_source_files_properties(
-    "csrc/libtorch_stable/quantization/awq/gemm_kernels.cu"
-    PROPERTIES
-    COMPILE_FLAGS " -mllvm -metaxgpu-igroup=true -mllvm -metaxgpu-igroup-config=B8 -maxmregcount=128"
-  )
+    # support opt of gptq-marlin
+    set_source_files_properties(
+      "csrc/libtorch_stable/quantization/awq/gemm_kernels.cu"
+      PROPERTIES
+      COMPILE_FLAGS " -mllvm -metaxgpu-igroup=true -mllvm -metaxgpu-igroup-config=B8 -maxmregcount=128"
+    )
 
   # support opt of cutlass w8a8 scale mm
-  set_source_files_properties(
+    set_source_files_properties(
     "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_entry.cu"
     PROPERTIES
     COMPILE_FLAGS " -mllvm -metaxgpu-igroup=true -mllvm -misched-postra=true"
@@ -352,7 +353,6 @@ if(VLLM_GPU_LANG STREQUAL "CUDA")
                     "in CUDA target architectures")
     endif()
   endif()
-
 
   #
   # CUTLASS MoE kernels (moved from _C to _C_stable_libtorch)
@@ -565,14 +565,6 @@ if(VLLM_GPU_LANG STREQUAL "CUDA")
   # Needed by CUTLASS kernels
   target_compile_definitions(_C_stable_libtorch PRIVATE
     CUTLASS_ENABLE_DIRECT_CUDA_DRIVER_CALL=1)
-elseif(VLLM_GPU_LANG STREQUAL "HIP")
-  # Set TORCH_TARGET_VERSION for stable ABI compatibility.
-  # This ensures we only use C-shim APIs available in PyTorch 2.10.
-  # _C_stable_libtorch is abi compatible with PyTorch >= TORCH_TARGET_VERSION
-  # which is currently set to 2.10.
-  target_compile_definitions(_C_stable_libtorch PRIVATE
-    TORCH_TARGET_VERSION=0x020A000000000000ULL)
-  target_compile_definitions(_C_stable_libtorch PRIVATE USE_ROCM)
 endif()
 
 endif()
@@ -673,14 +665,6 @@ if(VLLM_GPU_LANG STREQUAL "CUDA")
   # Needed by CUTLASS kernels
   target_compile_definitions(_moe_C_stable_libtorch PRIVATE
     CUTLASS_ENABLE_DIRECT_CUDA_DRIVER_CALL=1)
-elseif(VLLM_GPU_LANG STREQUAL "HIP")
-  # Set TORCH_TARGET_VERSION for stable ABI compatibility.
-  # This ensures we only use C-shim APIs available in PyTorch 2.10.
-  # _moe_C_stable_libtorch is abi compatible with PyTorch >= TORCH_TARGET_VERSION
-  # which is currently set to 2.10.
-  target_compile_definitions(_moe_C_stable_libtorch PRIVATE
-    TORCH_TARGET_VERSION=0x020A000000000000ULL)
-  target_compile_definitions(_moe_C_stable_libtorch PRIVATE USE_ROCM)
 endif()
 
 endif()
