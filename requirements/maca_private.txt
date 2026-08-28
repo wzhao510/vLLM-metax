@@ -35,5 +35,7 @@ lmcache==0.4.6+maca3.8.0.5
 nixl==1.0.0+maca3.8.0.5
 
 mcoplib==0.4.8+maca3.8.0.25.torch2.10
+apache-tvm-ffi==0.1.3.dev11
+tilelang==0.1.9+maca
 
 # uv pip install -r requirements/maca.txt -c requirements/constraints.txt  --index-strategy unsafe-best-match --extra-index-url https://repos.metax-tech.com/r/maca-pypi/simple --trusted-host repos.metax-tech.com --dry-run
