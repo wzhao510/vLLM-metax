@@ -11,3 +11,4 @@ from . import deepseek_v4  # noqa: F401
 from . import int8_w8a8  # noqa: F401
 from . import mctlass_ep_invalid_experts  # noqa: F401
 from . import minimax_m3  # noqa: F401
+from . import tokenizer  # noqa: F401
