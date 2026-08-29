@@ -294,7 +294,7 @@ class MacaPlatformBase(Platform):
         model_config = vllm_config.model_config
 
         if parallel_config.worker_cls == "auto":
-            parallel_config.worker_cls = "vllm.v1.worker.gpu_worker.Worker"
+            parallel_config.worker_cls = "vllm_metax.v1.worker.gpu_worker.MacaWorker"
 
         scheduler_config = vllm_config.scheduler_config
         # Note: model_config may be None during testing
@@ -321,6 +321,7 @@ class MacaPlatformBase(Platform):
                 "vllm::mx_sparse_attn_indexer_int8"
             )
             compilation_config._attention_ops.append("vllm::mx_deepseek_v4_attention")
+            compilation_config._attention_ops.append("vllm::mx_sparse_attn_indexer_kpool")
 
         # -------------------------------------------------------
         # Disable cascade attention for Maca platform currently
@@ -328,9 +329,6 @@ class MacaPlatformBase(Platform):
             vllm_config.model_config.disable_cascade_attn = True
 
         # -------------------------------------------------------
-        # Force MLAPrefill to FLASH_ATTN
-        if attention_config := vllm_config.attention_config:
-            attention_config.mla_prefill_backend = MLAPrefillBackendEnum.FLASH_ATTN
 
         # -------------------------------------------------------
         # Append H=hidden_size at runtime (once model config is available)
@@ -416,6 +414,20 @@ class MacaPlatformBase(Platform):
                 valid_backends_priorities.append((backend, priority))
 
         return valid_backends_priorities, invalid_reasons
+
+    @classmethod
+    def _get_indexer_block_alignment(cls, vllm_config: VllmConfig) -> int | None:
+        index_kpool = getattr(
+            vllm_config.model_config.hf_text_config, "index_kpool", None
+        )
+        if not index_kpool or index_kpool <= 1:
+            return None
+        from vllm.utils.deep_gemm import PAGED_MQA_PAGE_SIZES
+
+        # kpool paged-MQA indexer: the storage block (block_size /
+        # index_kpool) is virtually split into pool pages, so block_size
+        # must be a multiple of index_kpool * min(PAGED_MQA_PAGE_SIZES).
+        return index_kpool * min(PAGED_MQA_PAGE_SIZES)
 
     @classmethod
     def get_attn_backend_cls(
@@ -648,6 +660,10 @@ class MacaPlatformBase(Platform):
     @classmethod
     def support_static_graph_mode(cls) -> bool:
         return True
+
+    @classmethod
+    def check_runner_kv_caches_multi_layer(cls) -> None:
+        pass
 
     @classmethod
     def support_deep_gemm(cls) -> bool:
@@ -1008,11 +1024,11 @@ mx_envs.maybe_override_vllm_env(
     "set float32 matmul precision to high for better performance on Maca platform",
 )
 
-mx_envs.maybe_override_vllm_env(
-    "VLLM_USE_V2_MODEL_RUNNER",
-    False,
-    "v2 model runner is still under development and not fully tested on Maca platform, disable it by default",
-)
+# mx_envs.maybe_override_vllm_env(
+#     "VLLM_USE_V2_MODEL_RUNNER",
+#     False,
+#     "v2 model runner is still under development and not fully tested on Maca platform, disable it by default",
+# )
 
 mx_envs.maybe_override_vllm_env(
     "VLLM_USE_DEEP_GEMM_E8M0",

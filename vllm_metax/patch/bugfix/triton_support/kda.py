@@ -35,6 +35,8 @@ def kda_gate_fwd_kernel(
     g_bias,
     beta: tl.constexpr,
     threshold: tl.constexpr,
+    SAFE_GATE: tl.constexpr,
+    LOWER_BOUND: tl.constexpr,
     T,
     H,
     D: tl.constexpr,
@@ -46,7 +48,7 @@ def kda_gate_fwd_kernel(
     n_t = i_t * BT
 
     b_a = tl.load(A + i_h).to(tl.float32)
-    b_a = -tl.exp(b_a)
+    b_a = tl.exp(b_a) if SAFE_GATE else -tl.exp(b_a)
 
     stride_row = H * D
     stride_col = 1
@@ -79,12 +81,17 @@ def kda_gate_fwd_kernel(
         )
         b_g = b_g + b_bias[None, :]
 
-    # softplus(x, beta) = (1/beta) * log(1 + exp(beta * x))
-    # When beta * x > threshold, use linear approximation x
-    # Use threshold to switch to linear when beta*x > threshold
-    g_scaled = b_g * beta
-    use_linear = g_scaled > threshold
-    sp = tl.where(use_linear, b_g, (1.0 / beta) * log(1.0 + tl.exp(g_scaled)))
-    b_y = b_a * sp
+    if SAFE_GATE:
+        # y = lower_bound * sigmoid(exp(A) * (g + g_bias)), bounded to
+        # (lower_bound, 0) for safe-gate checkpoints.
+        b_y = LOWER_BOUND / (1.0 + tl.exp(-(b_a * b_g)))
+    else:
+        # softplus(x, beta) = (1/beta) * log(1 + exp(beta * x))
+        # When beta * x > threshold, use linear approximation x
+        # Use threshold to switch to linear when beta*x > threshold
+        g_scaled = b_g * beta
+        use_linear = g_scaled > threshold
+        sp = tl.where(use_linear, b_g, (1.0 / beta) * log(1.0 + tl.exp(g_scaled)))
+        b_y = b_a * sp
 
     tl.store(y_ptr, b_y.to(y.dtype.element_ty), boundary_check=(0, 1))

@@ -16,3 +16,4 @@ from . import joyai_support  # noqa: F401
 from . import device_allocator  # noqa: F401
 from . import utils  # noqa: F401
 from . import mxmesh  # noqa: F401
+from . import glm5next_support  # noqa: F401

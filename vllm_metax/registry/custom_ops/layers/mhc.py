@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import torch
 # this import will also register the custom ops
-# import vllm.model_executor.kernels.mhc  # noqa: F401
+import vllm_metax.model_executor.kernels.mhc.tilelang  # noqa: F401
 from vllm.model_executor.layers.mhc import MHCPreOp, MHCPostOp, HCHeadOp, MHCFusedPostPreOp
 
 @MHCPreOp.register_oot

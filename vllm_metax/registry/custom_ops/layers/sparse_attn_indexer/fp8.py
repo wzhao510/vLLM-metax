@@ -10,7 +10,7 @@ from vllm.compilation.breakable_cudagraph import eager_break_during_capture
 from vllm.distributed import get_pcp_group
 from vllm.forward_context import get_forward_context
 from vllm.logger import init_logger
-from vllm.model_executor.layers.attention.pcp import maybe_gather_indexer_k
+from vllm.v1.attention.ops.pcp import maybe_gather_indexer_k
 from vllm.platforms import current_platform
 
 from vllm_metax.utils.deep_gemm import (

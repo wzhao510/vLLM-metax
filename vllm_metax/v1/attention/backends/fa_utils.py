@@ -20,6 +20,9 @@ def get_flash_attn_version(
     head_size: int | None = None,
     head_size_v: int | None = None,
     has_sinks: bool = False,
+    requires_softcap: bool = False,
+    kv_cache_block_size: int | None = None,
+    supports_fa4_hd256: bool = False,
 ) -> int | None:
     logger.info_once(
         "Using Maca version of flash attention, which only supports version 2."
