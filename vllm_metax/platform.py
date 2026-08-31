@@ -219,9 +219,16 @@ class MacaPlatformBase(Platform):
     def is_cuda_alike(cls) -> bool:
         return True
 
-    @classmethod
     def is_sleep_mode_available(cls) -> bool:
         return True
+
+    def is_cumem_allocator_available(self) -> bool:
+        try:
+            from vllm_metax.device_allocator.cumem import cumem_available
+        except ImportError:
+            return False
+
+        return cumem_available
 
     @classmethod
     def is_fully_connected(cls, device_ids: list[int]) -> bool:
