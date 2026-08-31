@@ -366,7 +366,7 @@ class MacaPlatformBase(Platform):
 
         # -------------------------------------------------------
         # Note: Support joyai_llm_flash MTP
-        if model_config is not None:
+        if model_config is not None and vllm_config.speculative_config is not None:
             hf_config = model_config.hf_config
             # logic copied from `SepculativeConfig.hf_config_override`
             if hf_config.model_type in ("joyai_llm_flash",):

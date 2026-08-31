@@ -9,3 +9,4 @@
 from . import triton_support  # noqa: F401
 from . import deepseek_v4  # noqa: F401
 from . import int8_w8a8  # noqa: F401
+from . import tokenizer  # noqa: F401
