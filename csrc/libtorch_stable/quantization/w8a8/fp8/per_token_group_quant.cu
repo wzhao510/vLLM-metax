@@ -219,7 +219,7 @@ void per_token_group_quant_8bit(const torch::stable::Tensor& input,
   const int scale_num_rows = output_s.size(1);
   const int scale_stride = output_s.stride(1);
 
-#ifndef USE_ROCM
+#if !defined(USE_ROCM) && !defined(USE_MACA)
   #define LAUNCH_KERNEL_INST(T, DST_DTYPE, COL_MAJOR, UE8M0, SMEM_BYTES)     \
     do {                                                                     \
       cudaLaunchConfig_t config = {};                                        \

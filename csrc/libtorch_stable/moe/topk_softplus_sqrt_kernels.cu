@@ -134,11 +134,11 @@ void launchDsv4HashTopk(const float* input, float* output, OutIndType* indices,
   config.gridDim = (num_rows + 3) / 4;
   config.blockDim = 128;
   config.stream = stream;
-  cudaLaunchAttribute attr;
-  attr.id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attr.val.programmaticStreamSerializationAllowed = 1;
-  config.attrs = &attr;
-  config.numAttrs = 1;
+  // cudaLaunchAttribute attr;
+  // attr.id = cudaLaunchAttributeProgrammaticStreamSerialization;
+  // attr.val.programmaticStreamSerializationAllowed = 1;
+  config.attrs = nullptr;
+  config.numAttrs = 0;
   const float scale = static_cast<float>(routed_scaling_factor);
   cudaLaunchKernelEx(&config, kernel, input, output, indices, num_rows,
                      num_experts, scale, input_ids, tid2eid, is_padding);
@@ -597,11 +597,11 @@ void topkGatingSoftplusSqrtLauncherHelper(
     config.blockDim = block_dim;
     config.dynamicSmemBytes = 0;
     config.stream = stream;
-    cudaLaunchAttribute attrs[1];
-    attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-    attrs[0].val.programmaticStreamSerializationAllowed = 1;
-    config.numAttrs = 1;
-    config.attrs = attrs;
+    // cudaLaunchAttribute attrs[1];
+    // attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
+    // attrs[0].val.programmaticStreamSerializationAllowed = 1;
+    config.numAttrs = 0;
+    config.attrs = nullptr;
     cudaLaunchKernelEx(&config, kernel, input, finished, output, num_rows,
                        indices, source_row, k, start_expert, end_expert,
                        renormalize, routed_scaling_factor, correction_bias,

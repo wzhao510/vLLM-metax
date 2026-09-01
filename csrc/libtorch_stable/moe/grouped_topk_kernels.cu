@@ -1358,11 +1358,11 @@ void invokeNoAuxTc(T* scores, float* topk_values, IdxT* topk_indices,
                    cudaStream_t const stream = 0) {
   cudaLaunchConfig_t config;
   config.stream = stream;
-  cudaLaunchAttribute attrs[1];
-  attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attrs[0].val.programmaticStreamSerializationAllowed = enable_pdl;
-  config.numAttrs = 1;
-  config.attrs = attrs;
+  // cudaLaunchAttribute attrs[1];
+  // attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
+  // attrs[0].val.programmaticStreamSerializationAllowed = enable_pdl;
+  config.numAttrs = 0;
+  config.attrs = nullptr;
   if (n_group == 1 && topk_group == 1 &&
       single_group_topk::invoke<T, BiasT, IdxT, SF>(
           scores, topk_values, topk_indices, bias, num_tokens, num_experts,

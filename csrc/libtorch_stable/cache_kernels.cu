@@ -107,7 +107,7 @@ void swap_blocks_batch(const torch::stable::Tensor& src_ptrs,
   // and CUdeviceptr/void*/size_t are all 8 bytes on 64-bit platforms, so we
   // reinterpret_cast the tensor data directly to avoid copies.
   static_assert(sizeof(size_t) == sizeof(int64_t));
-#if !defined(USE_ROCM) && defined(CUDA_VERSION) && CUDA_VERSION >= 12080
+#if !defined(USE_ROCM) && !defined(USE_MACA)
   static_assert(sizeof(CUdeviceptr) == sizeof(int64_t));
   // Resolve cuMemcpyBatchAsync at runtime via cuGetProcAddress so that
   // binaries compiled with CUDA 12.8+ still work on older drivers, and

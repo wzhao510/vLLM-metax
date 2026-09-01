@@ -665,11 +665,8 @@ static void launchPdl(KernelT kernel, int num_tokens, int num_heads,
   config.blockDim = dim3(kBlockSize);
   config.dynamicSmemBytes = 0;
   config.stream = stream;
-  cudaLaunchAttribute attrs[1];
-  attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attrs[0].val.programmaticStreamSerializationAllowed = 1;
-  config.attrs = attrs;
-  config.numAttrs = (sm_version >= 90) ? 1 : 0;
+  config.attrs = nullptr;
+  config.numAttrs = 0;
   cudaLaunchKernelEx(&config, kernel, args...);
 #else
   // clang-format off

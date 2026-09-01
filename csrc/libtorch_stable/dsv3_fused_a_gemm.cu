@@ -677,12 +677,8 @@ void invokeFusedAGemm(T* output, T const* mat_a, T const* mat_b, int num_tokens,
   config.blockDim = block_size;
   config.dynamicSmemBytes = smem_bytes;
   config.stream = stream;
-  cudaLaunchAttribute attrs[1];
-  attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attrs[0].val.programmaticStreamSerializationAllowed =
-      enable_pdl || getEnvEnablePDL();
-  config.numAttrs = 1;
-  config.attrs = attrs;
+  config.numAttrs = 0;
+  config.attrs = nullptr;
   if (smem_bytes >= (48 * 1024)) {
     cudaFuncSetAttribute(fused_a_gemm_kernel<batch_size, gemm_m, gemm_k, tile_m,
                                              tile_n, tile_k, stage_cnt>,

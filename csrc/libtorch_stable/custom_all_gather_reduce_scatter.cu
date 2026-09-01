@@ -58,7 +58,7 @@ void CustomAllreduce::mnnvl_lamport_allgather(cudaStream_t stream, T* input,
   int blocks =
       (size_per_rank + kMnnvlLamportAgThreads - 1) / kMnnvlLamportAgThreads;
 
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000
+#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && !defined(USE_MACA)
   cudaLaunchAttribute attributes[1]{};
   attributes[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
   attributes[0].val.programmaticStreamSerializationAllowed = 1;
@@ -150,7 +150,7 @@ void CustomAllreduce::mnnvl_lamport_reduce_scatter(cudaStream_t stream,
       (size_per_rank + kMnnvlLamportRsThreads - 1) / kMnnvlLamportRsThreads;
   int blocks = blocks_per_rank * world_size_;
 
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000
+#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && !defined(USE_MACA)
   cudaLaunchAttribute attributes[1]{};
   attributes[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
   attributes[0].val.programmaticStreamSerializationAllowed = 1;

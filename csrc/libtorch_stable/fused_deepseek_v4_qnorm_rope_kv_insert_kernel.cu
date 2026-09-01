@@ -615,11 +615,8 @@ static void launchFusedDeepseekV4Templated(
   config.blockDim = dim3(kBlockSize);
   config.dynamicSmemBytes = 0;
   config.stream = stream;
-  cudaLaunchAttribute attrs[1];
-  attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attrs[0].val.programmaticStreamSerializationAllowed = 1;
-  config.attrs = attrs;
-  config.numAttrs = (sm_version >= 90) ? 1 : 0;
+  config.attrs = nullptr;
+  config.numAttrs = 0;
 
   if (num_tokens_full < NUM_TOKEN_CUTOFF) {
     cudaLaunchKernelEx(
@@ -917,11 +914,8 @@ static void launchFullCacheKernel(
   config.blockDim = dim3(kBlockSize);
   config.dynamicSmemBytes = 0;
   config.stream = stream;
-  cudaLaunchAttribute attrs[1];
-  attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attrs[0].val.programmaticStreamSerializationAllowed = 1;
-  config.attrs = attrs;
-  config.numAttrs = (sm_version >= 90) ? 1 : 0;
+  config.attrs = nullptr;
+  config.numAttrs = 0;
   cudaLaunchKernelEx(&config, kernel, q_inout, q_fp8_out, q_fp8_stride0,
                      q_fp8_stride1, kv_in, k_cache, slot_mapping, position_ids,
                      cos_sin_cache, fp8_scale, q_fp8_scale_inv, eps,

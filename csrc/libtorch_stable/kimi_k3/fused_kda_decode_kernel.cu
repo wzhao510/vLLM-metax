@@ -742,11 +742,11 @@ void launch_kda_decode_many_heads_raw(
   config.blockDim = dim3(kThreads);
   config.dynamicSmemBytes = 0;
   config.stream = stream;
-  cudaLaunchAttribute attrs[1];
-  attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attrs[0].val.programmaticStreamSerializationAllowed = 1;
-  config.attrs = attrs;
-  config.numAttrs = 1;
+  // cudaLaunchAttribute attrs[1];
+  // attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
+  // attrs[0].val.programmaticStreamSerializationAllowed = 1;
+  config.attrs = nullptr;
+  config.numAttrs = 0;
   cudaLaunchKernelEx(&config, kernel,
                      reinterpret_cast<const __nv_bfloat16*>(x_q),
                      reinterpret_cast<const __nv_bfloat16*>(x_k),

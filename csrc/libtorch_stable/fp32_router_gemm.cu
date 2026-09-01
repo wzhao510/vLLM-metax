@@ -187,11 +187,8 @@ static void launchFp32RouterGemm(float* output, InputT const* mat_a,
   config.blockDim = kBlockSize * kTGroups;
   config.dynamicSmemBytes = 0;
   config.stream = stream;
-  cudaLaunchAttribute attrs[1];
-  attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attrs[0].val.programmaticStreamSerializationAllowed = 1;
-  config.numAttrs = 1;
-  config.attrs = attrs;
+  config.numAttrs = 0;
+  config.attrs = nullptr;
   cudaLaunchKernelEx(
       &config,
       fp32_router_gemm_kernel<InputT, kBlockSize, kNumTokens, kEPB, kNumExperts,

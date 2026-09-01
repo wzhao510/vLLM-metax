@@ -886,11 +886,8 @@ static void launch_fwd(const bf16_t* block_residual, bf16_t* layer_residual,
   config.blockDim = BLK;
   config.dynamicSmemBytes = smem_size;
   config.stream = stream;
-  cudaLaunchAttribute attrs[1];
-  attrs[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
-  attrs[0].val.programmaticStreamSerializationAllowed = 1;
-  config.attrs = attrs;
-  config.numAttrs = 1;
+  config.attrs = nullptr;
+  config.numAttrs = 0;
   cudaLaunchKernelEx(&config, kernel, block_residual, layer_residual, delta,
                      res_weight, rms_weight, output, N, T, B, block_stride_m,
                      block_stride_r, rms_eps, output_norm_weight,
