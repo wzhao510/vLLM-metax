@@ -13,12 +13,36 @@ from vllm.model_executor.layers.fused_moe.prepare_finalize.deepep_ll import (
     DeepEPLLPrepareAndFinalize,
 )
 from vllm.v1.worker.ubatching import dbo_current_ubatch_id
+from vllm.v1.worker.ubatching import (
+    dbo_enabled,
+    dbo_maybe_run_recv_hook,
+)
+from vllm.model_executor.layers.fused_moe.topk_weight_and_reduce import (
+    TopKWeightAndReduceDelegate,
+)
+from importlib import metadata
 
 logger = init_logger(__name__)
 
 # DeepEP kernels quantize dispatch inputs in 128 element chunks.
 DEEPEP_QUANT_BLOCK_SIZE = 128
 DEEPEP_QUANT_BLOCK_SHAPE = [DEEPEP_QUANT_BLOCK_SIZE, DEEPEP_QUANT_BLOCK_SIZE]
+
+
+def check_deepep_package() -> str:
+    """Return the installed DeepEP-compatible backend package."""
+    try:
+        metadata.distribution("mxmesh")
+        return "mxmesh"
+    except metadata.PackageNotFoundError:
+        try:
+            metadata.distribution("deep_ep")
+            return "deep_ep"
+        except metadata.PackageNotFoundError as exc:
+            raise FileNotFoundError(
+                "DeepEP low-latency kernels require either the mxmesh "
+                "or deep_ep package"
+            ) from exc
 
 
 class MacaDeepEPLLPrepareAndFinalize(DeepEPLLPrepareAndFinalize):
@@ -58,13 +82,11 @@ class MacaDeepEPLLPrepareAndFinalize(DeepEPLLPrepareAndFinalize):
         nvfp4_dispatch = (
             quant_config.quant_dtype == "nvfp4" and envs.VLLM_DEEPEPLL_NVFP4_DISPATCH
         )
-
         if nvfp4_dispatch:
             use_nvfp4 = True
         qc_a1_gscale_or_scale = (
             quant_config.a1_gscale if nvfp4_dispatch else quant_config.a1_scale
         )
-
         has_per_token_scales = (
             qc_a1_gscale_or_scale.numel() != 1
             if qc_a1_gscale_or_scale is not None
@@ -74,7 +96,6 @@ class MacaDeepEPLLPrepareAndFinalize(DeepEPLLPrepareAndFinalize):
                 else False
             )
         )
-
         if not use_nvfp4:
             assert not has_per_token_scales, (
                 "low_latency kernels doesn't support dispatching per-token scales"
@@ -102,6 +123,11 @@ class MacaDeepEPLLPrepareAndFinalize(DeepEPLLPrepareAndFinalize):
             self.max_tokens_per_rank,
             num_experts,
             use_fp8=self.use_fp8_dispatch,
+            **(
+                dict(topk_weights=topk_weights)
+                if check_deepep_package() == "mxmesh"
+                else dict()
+            ),
             # /---------------- MetaX Modification ---------------\
             # round_scale=self.use_ue8m0_dispatch,
             # use_ue8m0=self.use_ue8m0_dispatch,
@@ -127,6 +153,54 @@ class MacaDeepEPLLPrepareAndFinalize(DeepEPLLPrepareAndFinalize):
                 quant_config,
             ),
         )
+
+    def _finalize(
+        self,
+        output: torch.Tensor,
+        fused_expert_output: torch.Tensor,
+        topk_weights: torch.Tensor,
+        topk_ids: torch.Tensor,
+        apply_router_weight_on_input: bool,
+        weight_and_reduce_impl: mk.TopKWeightAndReduce,
+        do_async: bool,
+    ) -> tuple[Callable, Callable]:
+        assert isinstance(weight_and_reduce_impl, TopKWeightAndReduceDelegate), (
+            "Weight application and reduction happens in the combine kernel."
+        )
+
+        a2a_idx = dbo_current_ubatch_id()
+        do_recv_hook = dbo_enabled() or do_async
+        handle = self.handles[a2a_idx]
+        assert handle is not None
+
+        combine_topk_weights = topk_weights
+        if apply_router_weight_on_input:
+            # weights have already been applied.
+            combine_topk_weights = torch.ones_like(topk_weights)
+
+        combine_topk_ids = self._map_global_to_physical_ids(topk_ids)
+        # TODO (varun) : Enable zero copy mode
+        dbo_maybe_run_recv_hook()
+        combined, _, recv_hook = self.buffer.low_latency_combine(
+            fused_expert_output,
+            combine_topk_ids,
+            combine_topk_weights,
+            handle,
+            async_finish=False,
+            zero_copy=False,
+            return_recv_hook=do_recv_hook,
+            **(dict(out=output) if check_deepep_package() == "deep_ep" else dict()),
+        )
+
+        # /------------------------ MetaX Modification -------------------------\
+        # MxMesh returns a separate tensor and does not update vLLM's output.
+        if check_deepep_package() == "mxmesh":
+            if do_recv_hook:
+                return recv_hook, lambda: output.copy_(combined)
+
+            output.copy_(combined)
+        # \------------------------ MetaX Modification -------------------------/
+        return recv_hook, lambda: None
 
     def _receiver(
         self,
