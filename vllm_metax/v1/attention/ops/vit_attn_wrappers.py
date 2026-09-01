@@ -18,7 +18,6 @@ To use these ops, you must have a recent version of PyTorch installed (>= 2.4.0)
 
 import einops
 import torch
-import torch.nn.functional as F
 
 from vllm.utils.torch_utils import direct_register_custom_op
 

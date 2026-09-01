@@ -3,6 +3,7 @@
 import torch
 from vllm.triton_utils import tl, triton
 
+
 @triton.jit
 def _gather_k_cache_kernel(
     out_ptr,
@@ -57,10 +58,7 @@ def _gather_k_cache_kernel(
         )
 
         out_ptr_cur = (
-            out_ptr
-            + batch_idx * out_stride0
-            + (offset + i) * out_stride1
-            + dim_offsets
+            out_ptr + batch_idx * out_stride0 + (offset + i) * out_stride1 + dim_offsets
         )
 
         vals = tl.load(k_ptr, mask=dim_mask, other=0.0)
@@ -84,14 +82,12 @@ def gather_k_cache(
     num_reqs = seq_lens.shape[0]
     head_size = k_cache.shape[2]
 
-
     if gather_lens is not None:
         assert gather_lens.is_cuda
         assert gather_lens.shape == seq_lens.shape
 
     NUM_TOKEN_WORKERS = 128
     BLOCK_D = triton.next_power_of_2(head_size)
-
 
     _gather_k_cache_kernel[(num_reqs, NUM_TOKEN_WORKERS, 1)](
         out,

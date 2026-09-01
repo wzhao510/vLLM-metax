@@ -31,7 +31,7 @@ current_platform.import_kernels()
 
 if TYPE_CHECKING:
 
-    def register_fake(name):
+    def register_fake(name, allow_override=False):
         return lambda fn: fn
 else:
     try:

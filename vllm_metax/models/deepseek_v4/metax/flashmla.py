@@ -11,7 +11,7 @@ from vllm_metax.models.deepseek_v4.attention import MacaDeepseekV4Attention
 from vllm.models.deepseek_v4.common.ops import (
     combine_topk_swa_indices,
     compute_global_topk_indices_and_lens,
-    dequantize_and_gather_k_cache
+    dequantize_and_gather_k_cache,
 )
 from vllm_metax.models.deepseek_v4.metax.ops.o_proj import (
     deep_gemm_bf16_o_proj,
@@ -42,6 +42,7 @@ from vllm.v1.worker.workspace import current_workspace_manager
 if TYPE_CHECKING:
     from vllm.v1.attention.backends.mla.sparse_swa import DeepseekSparseSWAMetadata
 import vllm_metax.envs as mx_envs
+
 
 class MacaDeepseekV4FlashMLAAttention(MacaDeepseekV4Attention):
     backend_cls = MacaDeepseekV4FlashMLABackend

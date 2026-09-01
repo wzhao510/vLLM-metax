@@ -7,7 +7,7 @@ NOTE: start a supported chat completion model server with `vllm serve`, e.g.
 """
 
 import argparse
-import base64
+import pybase64 as base64
 import os
 import mimetypes
 from typing import Iterable

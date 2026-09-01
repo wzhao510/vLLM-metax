@@ -838,10 +838,7 @@ class Indexer(nn.Module):
 
             q_input = q
 
-
-        weights = (
-            weights * q_scale * self.softmax_scale * self.n_head_scale
-        )
+        weights = weights * q_scale * self.softmax_scale * self.n_head_scale
 
         return self.indexer_op(hidden_states, q_input, k, weights)
 
@@ -858,7 +855,9 @@ def _try_load_fp8_int8_indexer_wk(
     """
     if "indexer.wk." not in name or "wk_weights" in name:
         return False  # Weight is not an isolated WK weight for the indexer, ignore.
-    is_weight = name.endswith(".weight") and (tensor.dtype == torch.float8_e4m3fn or tensor.dtype == torch.int8)
+    is_weight = name.endswith(".weight") and (
+        tensor.dtype == torch.float8_e4m3fn or tensor.dtype == torch.int8
+    )
     is_scale = "weight_scale_inv" in name or "weight_scale" in name
     if not is_weight and not is_scale:
         return False  # WK is not in a supported quantized format, ignore.
@@ -1302,12 +1301,12 @@ class DeepseekV2DecoderLayer(nn.Module):
         # https://www.modelscope.cn/models/jd-opensource/JoyAI-LLM-Flash
         # docker: jdopensource/joyai-llm-vllm:v0.15.1-joyai_llm_flash
         is_dense_mtp = (
-            config.num_hidden_layers == 40 and layer_idx == 40) # JoyAI_LLM_Flash
+            config.num_hidden_layers == 40 and layer_idx == 40
+        )  # JoyAI_LLM_Flash
         if (
-            is_moe_layer
-            and not is_dense_mtp # JoyAI_LLM_Flash
+            is_moe_layer and not is_dense_mtp  # JoyAI_LLM_Flash
         ):
-        # \----------------------------------------------------------------/
+            # \----------------------------------------------------------------/
             self.mlp = DeepseekV2MoE(
                 config=config,
                 parallel_config=parallel_config,
@@ -1637,7 +1636,7 @@ class DeepseekV2Model(nn.Module):
             )
 
             if _try_load_fp8_int8_indexer_wk(
-                 name,
+                name,
                 loaded_weight,
                 _pending_wk_fp8,
                 params_dict,

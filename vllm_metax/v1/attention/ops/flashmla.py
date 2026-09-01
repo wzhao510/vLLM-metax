@@ -3,16 +3,12 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 # adapted from: https://github.com/deepseek-ai/FlashMLA/blob/main/flash_mla/flash_mla_interface.py
 
-from dataclasses import dataclass
 
 import torch
 
 from vllm.logger import init_logger
-from vllm.platforms import current_platform
 
 logger = init_logger(__name__)
-
-import flash_mla
 
 
 def _is_flashmla_available() -> tuple[bool, str | None]:

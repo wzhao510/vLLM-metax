@@ -22,7 +22,6 @@
 
 import torch
 
-import vllm.model_executor.layers.fused_moe.config as vllm_fused_moe_config
 from vllm.model_executor.layers.fused_moe.config import (
     FusedMoEQuantConfig,
     FusedMoEQuantDesc,

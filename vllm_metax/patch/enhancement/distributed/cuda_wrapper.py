@@ -20,7 +20,6 @@ from typing import Any
 import torch  # noqa
 
 import vllm.envs as envs
-from vllm.distributed.device_communicators.cuda_wrapper import logger
 from vllm.platforms import current_platform
 from vllm.utils.system_utils import find_loaded_library
 from vllm_metax.patch.utils import patch
@@ -196,7 +195,7 @@ class CudaRTLibrary:
 
         if "mcExtMallocWithFlags" not in self.funcs:
             raise RuntimeError(
-                f"Function mcExtMallocWithFlags not found, wrong runtime lib?"
+                "Function mcExtMallocWithFlags not found, wrong runtime lib?"
             )
 
         devPtr = ctypes.c_void_p()
@@ -228,7 +227,7 @@ class CudaRTLibrary:
         return handle
 
     def cudaIpcOpenMemHandle(self, handle: cudaIpcMemHandle_t) -> ctypes.c_void_p:
-        cudaIpcMemLazyEnablePeerAccess = 1
+        cudaIpcMemLazyEnablePeerAccess = 1  # noqa: F841
         mcIpcMemLazyEnablePeerAccess = 0
         devPtr = ctypes.c_void_p()
         self.CUDART_CHECK(

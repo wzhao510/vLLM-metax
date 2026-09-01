@@ -60,11 +60,12 @@ from vllm.v1.worker.workspace import (
     is_workspace_manager_initialized,
 )
 
+from vllm.v1.attention.backends.registry import AttentionBackendEnum, register_backend
+
 _HAS_FLASH_ATTN = is_flash_attn_varlen_func_available()
 if _HAS_FLASH_ATTN:
     from vllm_metax.v1.attention.backends.fa_utils import flash_attn_varlen_func
 
-from vllm.v1.attention.backends.registry import AttentionBackendEnum, register_backend
 
 # Continuation prefill: for small continuation chunks (q_len ≤ threshold),
 # use the TQ decode kernel directly instead of full-dequant + flash_attn.

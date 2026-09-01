@@ -177,12 +177,11 @@ class CompressedTensorsW4A8Int4MoEMethod(vllm_ctm.CompressedTensorsMoEMethod):
         )
 
         if self.group_size == -1:
-            # define tmp class
-            class PerTokenForcedConfig(config.__class__):
-                @property
-                def per_act_token_quant(self) -> bool:
-                    return True
-
+            PerTokenForcedConfig = type(
+                "PerTokenForcedConfig",
+                (config.__class__,),
+                {"per_act_token_quant": property(lambda self: True)},
+            )
             config.__class__ = PerTokenForcedConfig
 
         return config
@@ -398,12 +397,11 @@ class CompressedTensorsW4A8Int8MoEMethod(vllm_ctm.CompressedTensorsMoEMethod):
         )
 
         if self.group_size == -1:
-            # define tmp class
-            class PerTokenForcedConfig(config.__class__):
-                @property
-                def per_act_token_quant(self) -> bool:
-                    return True
-
+            PerTokenForcedConfig = type(
+                "PerTokenForcedConfig",
+                (config.__class__,),
+                {"per_act_token_quant": property(lambda self: True)},
+            )
             config.__class__ = PerTokenForcedConfig
 
         return config

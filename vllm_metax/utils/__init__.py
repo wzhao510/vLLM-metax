@@ -18,6 +18,7 @@ def get_moe_config_prefix() -> str | None:
         m = re.search(r"(?:^|/)(H=\d+)(?:/|$)", tuned_dir)
         if m:
             return m.group(1)
+    return None
 
 
 def import_pymxsml():

@@ -84,10 +84,11 @@ from vllm_metax.v1.attention.backends.cp_utils import (
 # Note: used for prefill decode split with mtp on maca
 # --------------------------------------------------------------
 from vllm_metax.model_executor.layers.attention.mla_attention import QueryLenSupport
-
-logger = init_logger(__name__)
 import vllm_metax.envs as mx_envs
 from vllm.v1.attention.backends.registry import AttentionBackendEnum, register_backend
+
+
+logger = init_logger(__name__)
 
 
 @register_backend(AttentionBackendEnum.FLASH_ATTN)
@@ -1258,7 +1259,7 @@ class FlashAttentionImpl(AttentionImpl):
             max_seqlen_q = attn_metadata.max_query_len
             max_seqlen_k = attn_metadata.max_seq_len
             block_table = attn_metadata.block_table
-            scheduler_metadata = attn_metadata.scheduler_metadata
+            scheduler_metadata = attn_metadata.scheduler_metadata  # noqa: F841
 
             descale_shape = (cu_seqlens_q.shape[0] - 1, self.num_kv_heads)
 
@@ -1295,19 +1296,19 @@ class FlashAttentionImpl(AttentionImpl):
                 )
 
                 causal = attn_metadata.causal
-                is_dynamic_causal = isinstance(causal, torch.Tensor)
+                is_dynamic_causal = isinstance(causal, torch.Tensor)  # noqa: F841
 
-                mm_prefix_ranges = attn_metadata.mm_prefix_range_tensor
-                mm_mask_mod = None
-                mm_aux = None
+                mm_prefix_ranges = attn_metadata.mm_prefix_range_tensor  # noqa: F841
+                mm_mask_mod = None  # noqa: F841
+                mm_aux = None  # noqa: F841
 
                 # R-SWA: use CuTE-DSL mask_mod on FA4 for exact token-level
                 # mask without block-size approximation.  The mask_mod encodes
                 # "causal AND (kv < prefix_len OR q - kv < rswa_window)", which
                 # supersedes any FA-layer sliding_window_size parameter.
-                rswa_mask_mod_fn = None
-                rswa_aux = None
-                dynamic_causal = None
+                rswa_mask_mod_fn = None  # noqa: F841
+                rswa_aux = None  # noqa: F841
+                dynamic_causal = None  # noqa: F841
 
                 if mx_envs.VLLM_METAX_ENABLE_FA_SPLIT_FORWARD:
                     # ┌------------------------  Metax Modification -------------------------┐
@@ -1658,7 +1659,7 @@ class FlashAttentionImpl(AttentionImpl):
         max_seqlen_q = attn_metadata.max_query_len
         max_seqlen_k = attn_metadata.max_query_len
 
-        descale_shape = (
+        descale_shape = (  # noqa: F841
             cu_seqlens_q.shape[0] - 1,  # type: ignore[union-attr]
             self.num_kv_heads,
         )
@@ -1837,7 +1838,7 @@ def cascade_attention(
     )
     # \------------------------- Metax Modification -------------------------/
 
-    descale_shape = (cu_query_lens.shape[0] - 1, key_cache.shape[-2])
+    descale_shape = (cu_query_lens.shape[0] - 1, key_cache.shape[-2])  # noqa: F841
     # /------------------------  Metax Modification -------------------------\
     cu_suffix_kv_lens = F.pad(
         suffix_kv_lens,

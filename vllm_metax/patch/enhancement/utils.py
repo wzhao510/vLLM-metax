@@ -61,6 +61,5 @@ def _int8_quantize(
     "FusedMoEQuantConfig.use_int4_w4a8",
     allow_missing=True,
 )
-@property
 def use_int4_w4a8(self):
     return self._a1.dtype == "int8" and self._w1.dtype == "int4"

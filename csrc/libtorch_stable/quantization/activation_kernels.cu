@@ -148,16 +148,13 @@ __device__ __forceinline__ void cp_async4(T* _smem_ptr, const U* _glob_ptr) {
   _smem_ptr[0] = _glob_ptr[0];
 }
 
-__device__ __forceinline__ void cp_async_fence() {
-}
+__device__ __forceinline__ void cp_async_fence() {}
 
 template <int N>
-__device__ __forceinline__ void cp_async_wait() {
-}
+__device__ __forceinline__ void cp_async_wait() {}
 
 template <>
-__device__ __forceinline__ void cp_async_wait<0>() {
-}
+__device__ __forceinline__ void cp_async_wait<0>() {}
 
 __device__ __forceinline__ float clip(float v, float mmin, float mmax) {
   return fminf(mmax, fmaxf(v, mmin));

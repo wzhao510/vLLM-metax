@@ -59,17 +59,12 @@ exclude = [
 "examples",
 "tests",
 "vllm_metax/third_party",
-"vllm_metax/models"
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"vllm_metax/platform.py" = ["ALL"]
 "vllm_metax/version.py" = ["ALL"]
 "vllm_metax/_version.py" = ["ALL"]
-"vllm_metax/v1/**" = ["ALL"]
 "vllm_metax/csrc/**" = ["ALL"]
-"vllm_metax/patch/**" = ["ALL"]
-"vllm_metax/hotfix/**" = ["ALL"]
 "vllm_metax/models/**" = ["ALL"]
 "tools/**" = ["ALL"]
 "setup.py" = ["G004"]

@@ -252,11 +252,11 @@ class FlashAttentionDiffKVImpl(FlashAttentionImpl):
 
         if not attn_metadata.use_cascade:
             cu_seqlens_q = attn_metadata.query_start_loc
-            seqused_k = attn_metadata.seq_lens
+            seqused_k = attn_metadata.seq_lens  # noqa: F841
             max_seqlen_q = attn_metadata.max_query_len
             max_seqlen_k = attn_metadata.max_seq_len
             block_table = attn_metadata.block_table
-            scheduler_metadata = attn_metadata.scheduler_metadata
+            scheduler_metadata = attn_metadata.scheduler_metadata  # noqa: F841
 
             descale_shape = (cu_seqlens_q.shape[0] - 1, self.num_kv_heads)
 

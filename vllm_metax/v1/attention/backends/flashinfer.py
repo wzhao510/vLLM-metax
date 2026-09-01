@@ -51,7 +51,6 @@ from vllm.utils.torch_utils import (
     PIN_MEMORY,
     canonicalize_singleton_dim_strides,
     is_quantized_kv_cache,
-    is_strictly_contiguous,
     nvfp4_kv_cache_full_dim,
     nvfp4_kv_cache_split_views,
 )
@@ -81,9 +80,7 @@ from vllm.v1.attention.ops.dcp_alltoall import dcp_a2a_lse_reduce
 from vllm_metax.v1.attention.ops.merge_attn_states import merge_attn_states
 from vllm.v1.kv_cache_interface import AttentionSpec, UniformTypeKVCacheSpecs
 from vllm.v1.kv_cache_interface import (
-    AttentionSpec,
     KVQuantMode,
-    UniformTypeKVCacheSpecs,
 )
 from vllm.v1.utils import CpuGpuBuffer
 from vllm.v1.attention.backends.registry import AttentionBackendEnum, register_backend
@@ -1684,7 +1681,7 @@ class FlashInferImpl(AttentionImpl):
 
                 if self.is_kvcache_nvfp4:
                     kv_cache_permute = nvfp4_kv_data
-                kv_cache_sf = nvfp4_kv_block_scales if self.is_kvcache_nvfp4 else None
+                kv_cache_sf = nvfp4_kv_block_scales if self.is_kvcache_nvfp4 else None  # noqa: F841
 
                 # NVFP4 kernel only supports FP8 output.
                 # Use a pre-allocated FP8 buffer and dequantize afterwards.

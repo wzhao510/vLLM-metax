@@ -6,4 +6,4 @@
 # Affected versions: v0.21.0
 # -----------------------------------------------
 
-from . import coordinator
+from . import coordinator  # noqa: F401

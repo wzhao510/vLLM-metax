@@ -88,11 +88,7 @@ class MacaDeepseekCompressor(DeepseekCompressor):
         state_width = state_cache.shape[-1] // 2
         # ---------------------------------------------
         # Note: Metax not support pdl
-        pdl_kwargs = (
-            {}
-            if current_platform.is_out_of_tree()
-            else {"launch_pdl": False}
-        )
+        pdl_kwargs = {} if current_platform.is_out_of_tree() else {"launch_pdl": False}
 
         save_partial_states(
             kv=kv,

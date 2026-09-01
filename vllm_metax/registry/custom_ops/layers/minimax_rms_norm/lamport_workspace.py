@@ -78,8 +78,11 @@ class IpcBuffer:
                 self.peer_ptrs[r] = self.local_ptr
             else:
                 handle = cudaIpcMemHandle_t()
-                # handle.internal = (ctypes.c_byte * 128).from_buffer_copy(all_handles[r])
-                ctypes.memmove(handle.internal, all_handles[r], 128)
+                peer_handle = all_handles[r]
+                if peer_handle is None:
+                    raise RuntimeError(f"Missing CUDA IPC handle for rank {r}")
+                # handle.internal = (ctypes.c_byte * 128).from_buffer_copy(peer_handle)
+                ctypes.memmove(handle.internal, peer_handle, 128)
                 ptr = libcudart.cudaIpcOpenMemHandle(handle)
                 self.peer_ptrs[r] = ptr.value
 

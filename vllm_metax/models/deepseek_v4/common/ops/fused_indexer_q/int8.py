@@ -6,6 +6,7 @@ from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.utils.import_utils import has_cutedsl
 
+
 @triton.jit
 def _round_to_nearest(x):
     # round-half-away-from-zero
@@ -151,7 +152,7 @@ def fused_indexer_q_rope_int8_quant(
     index_weights: torch.Tensor,
     index_weights_softmax_scale: float,
     index_weights_head_scale: float,
-    use_fp4: bool = False, # Dummy use in int8
+    use_fp4: bool = False,  # Dummy use in int8
     output_buffers: tuple[torch.Tensor, ...] | None = None,
 ) -> tuple[
     torch.Tensor | tuple[torch.Tensor, torch.Tensor],

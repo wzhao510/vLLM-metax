@@ -5,4 +5,4 @@
 #
 # Affected versions: v0.21.0
 # -----------------------------------------------
-from . import UVA
+from . import UVA  # noqa: F401

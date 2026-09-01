@@ -7,7 +7,7 @@
 #       纯内存操作，不动任何模型文件。
 # -------------------------------------------------------
 
-from transformers import LlamaTokenizerFast, PreTrainedTokenizerFast
+from transformers import PreTrainedTokenizerFast
 
 from vllm_metax.patch.utils import patch
 

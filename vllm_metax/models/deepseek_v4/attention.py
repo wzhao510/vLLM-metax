@@ -884,7 +884,7 @@ class MacaDeepseekV4Indexer(nn.Module):
             if self.eager_scratch_pool is not None and self.use_fp4_kv:
                 outputs = self.eager_scratch_pool.indexer_q_outputs(q.shape[0])
             # ----------------------------------------
-            # Note: Metax use int8 quant in indexer 
+            # Note: Metax use int8 quant in indexer
             if self.use_fp8_kv:
                 return fused_indexer_q_rope_quant(
                     positions,

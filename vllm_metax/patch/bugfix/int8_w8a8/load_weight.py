@@ -9,7 +9,7 @@
 # Remove at: Once upstream is fixed.
 # -----------------------------------------------------------------------------
 
-from typing import Iterable
+from collections.abc import Iterable
 import torch
 
 from vllm_metax.patch.utils import patch

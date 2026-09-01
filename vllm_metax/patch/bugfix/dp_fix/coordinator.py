@@ -9,14 +9,13 @@
 
 from vllm.logger import init_logger
 
-logger = init_logger(__name__)
-
 from vllm.v1.engine.coordinator import DPCoordinatorProc
 from vllm_metax.patch.utils import patch
 
+logger = init_logger(__name__)
+
 
 @patch("vllm.v1.engine.coordinator", "DPCoordinatorProc.run_coordinator")
-@staticmethod
 def run_coordinator(
     engine_count: int,
     front_publish_address: str,

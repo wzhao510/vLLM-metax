@@ -22,7 +22,6 @@ from vllm.v1.attention.backends.registry import AttentionBackendEnum, register_b
 from vllm.v1.attention.backends.mla.prefill.registry import MLAPrefillBackendEnum
 from vllm_metax.utils import import_pymxsml
 
-from vllm_metax.utils.msprobe_debug import resolve_worker_cls
 
 from vllm.platforms.interface import DeviceCapability, Platform, PlatformEnum
 from vllm.utils.argparse_utils import FlexibleArgumentParser
@@ -345,6 +344,8 @@ class MacaPlatformBase(Platform):
         _fused_moe_mod = importlib.import_module(
             "vllm_metax.model_executor.layers.fused_moe.fused_moe"
         )
+        if _fused_moe_mod.__file__ is None:
+            raise RuntimeError("Unable to locate the fused_moe module")
         _FUSED_MOE_CONFIGS_DIR = (
             Path(_fused_moe_mod.__file__).resolve().parent / "configs"
         )
@@ -367,9 +368,11 @@ class MacaPlatformBase(Platform):
 
         # -------------------------------------------------------
         # Note: Hotfix for Gemma 4 flash attention issue (addressed in upstream)
-        if model_config is not None:
-            if model_config.hf_config.model_type in ("gemma4_text", "gemma4"):
-                model_config.model_arch_config.is_mm_prefix_lm = False
+        if model_config is not None and model_config.hf_config.model_type in (
+            "gemma4_text",
+            "gemma4",
+        ):
+            model_config.model_arch_config.is_mm_prefix_lm = False
 
         # -------------------------------------------------------
         # Note: Support joyai_llm_flash MTP
@@ -681,7 +684,7 @@ class MacaPlatformBase(Platform):
         # Native used by default when compiling,
         # use vllm_c kernels where available when no codegen
         cc = vllm_config.compilation_config
-        using_inductor = cc.backend == "inductor" and cc.mode != CompilationMode.NONE
+        using_inductor = cc.backend == "inductor" and cc.mode != CompilationMode.NONE  # noqa: F841
         default = ["vllm_c", "native"]
 
         # Use oink if enabled for rms_norm
@@ -1030,6 +1033,6 @@ mx_envs.maybe_override_vllm_env(
 # --------------------------------------------------
 # Note: vllm_metax currently does not support third-party
 #       Triton kernels; Triton upgrade required.
-import vllm.utils.import_utils as iu
+import vllm.utils.import_utils as iu  # noqa: E402
 
 iu.has_triton_kernels = lambda: False

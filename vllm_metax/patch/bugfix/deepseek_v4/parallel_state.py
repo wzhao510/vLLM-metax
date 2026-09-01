@@ -8,6 +8,8 @@
 
 from vllm_metax.patch.utils import patch
 
+from vllm.distributed.parallel_state import GroupCoordinator
+
 
 @patch("vllm.distributed.parallel_state", "GroupCoordinator._should_use_all_gather")
 def _should_use_all_gather(

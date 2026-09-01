@@ -69,7 +69,7 @@ struct _typeConvert<torch::headeronly::Half> {
   }
 };
 
-  // #if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800) || defined(USE_ROCM)
+// #if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800) || defined(USE_ROCM)
 // CUDA_ARCH < 800 does not have BF16 support
 // ROCm 7.0+ supports bfloat16
 template <>
@@ -91,10 +91,10 @@ struct _typeConvert<torch::headeronly::BFloat16> {
     return __float22bfloat162_rn(x);
   }
 };
-  // #endif  // (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800) ||
-          // defined(USE_ROCM)
+// #endif  // (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800) ||
+// defined(USE_ROCM)
 // #endif    // defined(USE_ROCM) || (defined(CUDA_VERSION) && (CUDA_VERSION >=
-          // 12000))
+// 12000))
 
 /* Vector POD struct to generate vectorized and packed FP16/BF16 ops
    for appropriate specializations of fused_add_rms_norm_kernel.

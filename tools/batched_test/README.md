@@ -10,19 +10,19 @@ Used for batched e2e *inference* and *performance* benchmark.
 [UV=1] python launch.py [-h] [--work-dir WORK_DIR] [--model-config CONFIG_YAML_FILE] [--cluster-config CONFIG_YAML_FILE] [--infer] [--text-case LM_CASE_FILE] [--image-case IMAGE_CASE_FILE] [--resume-csv RESUME_CSV] [--perf] [--gpus] [--tag] [--dry-run] [--dump-selected]
 ```
 
-- `--work-dir`: 
+- `--work-dir`:
     Folder for saving tests result.
     If not specified, default using: </workspace/model_test>
 
 - `--model-config`
-    Model config file path. 
+    Model config file path.
     If not specified, default to: <configs/model.yaml>,
 
 - `--cluster-config`
-    Cluster config file path. 
+    Cluster config file path.
     If specified:
     - disable concurrency for all the tests
-    - use ray node for testing 
+    - use ray node for testing
     - ***the script must run in one of these nodes!***
 
 - `--infer`
@@ -48,7 +48,7 @@ Used for batched e2e *inference* and *performance* benchmark.
 
 - `--tag`
     Filter models using the tag field defined in model.yaml.
-    If a model does not define tag, it is treated as: 
+    If a model does not define tag, it is treated as:
     tag:
     - dense
     MoE models or other models should explicitly define:
@@ -65,7 +65,7 @@ Used for batched e2e *inference* and *performance* benchmark.
 
 ## Enable cluster
 
-```
+```yaml
 <cluster template>
 - ssh:
     hostname: host1 # SSH hostname
@@ -95,12 +95,12 @@ If using ray for multi-node tests, you need specify `--cluster-config` for scrip
 If not using ray for multi-node tests, you need not specify `--cluster-config` and not specify  `--gpus` also for scripts, run models requiring {1,2,4,8} GPUs by default.
 
 For example, if a model needs :
+
 - 8 cards, script would trying allocated 1 nodes and launch ray on it.
 - And if 16 cards, script would trying allocated 2 nodes and launch ray on both of them.
 - And 32 cards for 4 nodes with ray launched on all of them.
 
 *Note!: the script must run in one of the nodes and must be **the first node** in the cluster config file*
-
 
 ## Model Config Template
 
@@ -146,14 +146,13 @@ For example, if a model needs :
 - tag: User defined tags for the model. If not defined, the model tag is default to be `dense`.
 - sweep_num_runs: determine how many times for running on each combination in bench_param.
 
-
 ## Structure folder
 
 ### --infer
 
 Inference test folder structures are showed below:
 
-```
+```text
 # tree -L 6 /your/work/dir
 model_test
 `-- 20260113_1507
@@ -168,7 +167,7 @@ model_test
 
 Perf test folder structures are showed below:
 
-```
+```text
 # tree -L 6 /your/work/dir
 model_test
 `-- 20260113_1721

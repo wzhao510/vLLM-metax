@@ -4,6 +4,7 @@
 
 from vllm.triton_utils import tl, triton
 
+
 # -- fused_kv_compress_norm_rope_insert_sparse_attn_bf16 --
 @triton.jit
 def _fused_kv_compress_norm_rope_insert_sparse_attn_bf16(

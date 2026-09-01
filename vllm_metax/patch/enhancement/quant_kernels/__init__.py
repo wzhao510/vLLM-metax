@@ -5,4 +5,4 @@
 #
 # Affected versions: v0.21.0
 # -----------------------------------------------
-from . import fp8_block_kernel
+from . import fp8_block_kernel  # noqa: F401

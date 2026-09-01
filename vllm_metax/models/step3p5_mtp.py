@@ -23,7 +23,10 @@ from vllm.model_executor.model_loader.weight_utils import default_weight_loader
 from vllm.sequence import IntermediateTensors
 
 from vllm.model_executor.models.step3p5 import Step3p5DecoderLayer
-from vllm.model_executor.models.utils import get_spec_layer_idx_from_weight_name, maybe_prefix
+from vllm.model_executor.models.utils import (
+    get_spec_layer_idx_from_weight_name,
+    maybe_prefix,
+)
 
 logger = init_logger(__name__)
 
