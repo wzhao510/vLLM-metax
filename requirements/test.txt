@@ -36,8 +36,6 @@ anyio==4.6.2.post1
     #   sse-starlette
     #   starlette
     #   watchfiles
-apache-tvm-ffi==0.1.13.post2
-    # via xgrammar
 arctic-inference==0.1.1
     # via -r requirements/test.in
 argcomplete==3.5.1
@@ -1160,7 +1158,6 @@ typing-extensions==4.16.0
     #   alembic
     #   anthropic
     #   anyio
-    #   apache-tvm-ffi
     #   azure-core
     #   azure-identity
     #   azure-storage-blob
@@ -1244,7 +1241,7 @@ word2number==1.1
     # via lm-eval
 wrapt==2.3.0
     # via smart-open
-xgrammar==0.2.3
+xgrammar==0.1.32
     # via -r requirements/common.txt
 xxhash==3.5.0
     # via

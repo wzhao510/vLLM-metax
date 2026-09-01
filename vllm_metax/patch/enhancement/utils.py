@@ -56,10 +56,11 @@ def _int8_quantize(
     return A, A_scale
 
 
-@patch(
+@patch(  # type: ignore[prop-decorator, misc]
     "vllm.model_executor.layers.fused_moe.config",
     "FusedMoEQuantConfig.use_int4_w4a8",
     allow_missing=True,
 )
+@property
 def use_int4_w4a8(self):
     return self._a1.dtype == "int8" and self._w1.dtype == "int4"
