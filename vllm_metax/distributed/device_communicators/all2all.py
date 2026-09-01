@@ -16,7 +16,7 @@ from vllm.platforms import current_platform
 
 from vllm.distributed.device_communicators.all2all import (
     DeepEPLLAll2AllManager,
-    DeepEPHTAll2AllManager
+    DeepEPHTAll2AllManager,
 )
 
 
@@ -239,9 +239,9 @@ class MacaDeepEPLLAll2AllManager(DeepEPLLAll2AllManager):
             # \------------------- Metax Modification -----------------------/
             self.handle_cache._cache.clear()
 
+
 class MacaDeepEPHTAll2AllManager(DeepEPHTAll2AllManager):
     def _make_all2all_kwargs(self) -> dict[Any, Any]:
-
         import os
 
         assert os.getenv("MXSHMEM_LIB_PATH", None) is not None, (
@@ -277,11 +277,11 @@ class MacaDeepEPHTAll2AllManager(DeepEPHTAll2AllManager):
         return kwargs
 
     def destroy(self):
-            with self.handle_cache._lock:
-                # /------------------- Metax Modification -----------------------\
-                # /---Do not call Buffer.destroy because explicitly_destroy=True is not supported---\
+        with self.handle_cache._lock:
+            # /------------------- Metax Modification -----------------------\
+            # /---Do not call Buffer.destroy because explicitly_destroy=True is not supported---\
 
-                # for _, handle in self.handle_cache._cache.items():
-                #     handle.destroy()
-                # \------------------- Metax Modification -----------------------/
-                self.handle_cache._cache.clear()
+            # for _, handle in self.handle_cache._cache.items():
+            #     handle.destroy()
+            # \------------------- Metax Modification -----------------------/
+            self.handle_cache._cache.clear()
