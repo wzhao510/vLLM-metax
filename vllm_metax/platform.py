@@ -386,6 +386,11 @@ class MacaPlatformBase(Platform):
                     {"n_predict": n_predict, "architectures": ["DeepSeekMTPModel"]}
                 )
 
+        if kernel_config := vllm_config.kernel_config:
+            kernel_config.enable_jit_warmup = False
+            kernel_config.enable_cutedsl_warmup = False
+            kernel_config.enable_flashinfer_autotune = False
+
     @classmethod
     def get_current_memory_usage(
         cls, device: torch.types.Device | None = None
