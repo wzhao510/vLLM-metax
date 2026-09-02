@@ -2025,6 +2025,12 @@ def _prepare_expert_assignment(
             ),
         )
 
+    # /-------------------- MetaX Modification --------------------\
+    ignore_invalid_experts = ignore_invalid_experts or (
+        expert_map is not None and mx_envs.MACA_VLLM_ENABLE_MCTLASS_FUSED_MOE
+    )
+    # \-------------------- MetaX Modification --------------------/
+
     if block_size_m_override is not None:
         block_size_m_override()
 
