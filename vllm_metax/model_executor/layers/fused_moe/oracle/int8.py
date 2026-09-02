@@ -49,6 +49,7 @@ def _get_priority_backends(
     """
     _AVAILABLE_BACKENDS = [
         Int8MoeBackend.TRITON,
+        Int8MoeBackend.DEEPGEMM,
         Int8MoeBackend.BATCHED_TRITON,
         Int8MoeBackend.BATCHED_DEEPGEMM,
     ]
@@ -164,23 +165,20 @@ def select_int8_moe_backend(
             requested_backend, config, weight_key, activation_key, activation_format
         )
 
-    # Handle explicit DeepGEMM INT8 configuration.
+    # Handle explicit DeepGEMM FP8 configuration.
     if not envs.is_set("VLLM_USE_DEEP_GEMM"):
-        for backend in (
-            Int8MoeBackend.DEEPGEMM,
-            Int8MoeBackend.BATCHED_DEEPGEMM,
-        ):
-            if backend in AVAILABLE_BACKENDS:
-                AVAILABLE_BACKENDS.remove(backend)
+        AVAILABLE_BACKENDS.remove(Int8MoeBackend.DEEPGEMM)
+        AVAILABLE_BACKENDS.remove(Int8MoeBackend.BATCHED_DEEPGEMM)
     if envs.is_set("VLLM_USE_DEEP_GEMM") or envs.is_set("VLLM_MOE_USE_DEEP_GEMM"):
         if not envs.VLLM_USE_DEEP_GEMM or not envs.VLLM_MOE_USE_DEEP_GEMM:
-            for backend in (
-                Int8MoeBackend.DEEPGEMM,
-                Int8MoeBackend.BATCHED_DEEPGEMM,
-            ):
-                if backend in AVAILABLE_BACKENDS:
-                    AVAILABLE_BACKENDS.remove(backend)
+            AVAILABLE_BACKENDS.remove(Int8MoeBackend.DEEPGEMM)
+            AVAILABLE_BACKENDS.remove(Int8MoeBackend.BATCHED_DEEPGEMM)
         else:
+            if activation_format != mk.FusedMoEActivationFormat.BatchedExperts:
+                raise ValueError(
+                    "Only batched activation format is supported for DeepGEMM backend, "
+                    "Please make sure if your parallel config meet the requirement."
+                )
             backend = (
                 Int8MoeBackend.DEEPGEMM
                 if activation_format == mk.FusedMoEActivationFormat.Standard
