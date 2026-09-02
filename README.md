@@ -24,6 +24,7 @@ vLLM MetaX Plugin
 
 *Latest News* 🔥
 
+- [2026/8] Released vllm-metax **v0.24.0** ❤️‍🔥 — aligned with vLLM *v0.24.0*, supported more models and improved performance.
 - [2026/8] Released vllm-metax **v0.23.0** 🎉 — aligned with vLLM *v0.23.0*.
 - [2026/7] Released vllm-metax **v0.22.0** 🎉 — aligned with vLLM *v0.22.0*.
 - [2026/6] Released vllm-metax **v0.21.0** 🥳 — aligned with vLLM *v0.21.0*.
