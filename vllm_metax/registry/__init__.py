@@ -6,3 +6,5 @@ from . import (
     linear_kernels,  # noqa: F401
     quant_config,  # noqa: F401
 )
+
+import vllm_metax.device_allocator.sleep_mode_backend  # noqa: F401

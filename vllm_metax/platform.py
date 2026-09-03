@@ -317,6 +317,14 @@ class MacaPlatformBase(Platform):
             scheduler_config.disable_chunked_mm_input = True
 
         # -------------------------------------------------------
+        # switch cumem to macamem for Maca platform
+        if model_config is not None and model_config.sleep_mode_backend == "cumem":
+            logger.info(
+                "Switching sleep_mode_backend from 'cumem' to 'macamem' for Maca platform"
+            )
+            model_config.sleep_mode_backend = "macamem"
+
+        # -------------------------------------------------------
         # Append sparse attention op for Maca platform
         if compilation_config is not None:
             compilation_config._attention_ops.append("vllm::mx_sparse_attn_indexer")

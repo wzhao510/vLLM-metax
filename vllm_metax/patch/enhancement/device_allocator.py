@@ -9,7 +9,6 @@
 # -----------------------------------------------
 
 import gc
-from vllm.device_allocator import MemAllocator
 from vllm_metax.patch.utils import patch
 from vllm.distributed.kv_transfer import (
     ensure_kv_transfer_shutdown,
@@ -17,13 +16,9 @@ from vllm.distributed.kv_transfer import (
 from vllm.distributed.ec_transfer import (
     ensure_ec_transfer_shutdown,
 )
+from vllm_metax.device_allocator import get_mem_allocator_instance
 
-
-@patch("vllm.device_allocator")
-def get_mem_allocator_instance() -> MemAllocator:
-    from vllm_metax.device_allocator.cumem import CuMemAllocator
-
-    return CuMemAllocator.get_instance()
+patch("vllm.device_allocator", "get_mem_allocator_instance")(get_mem_allocator_instance)
 
 
 @patch("vllm.v1.worker.gpu_worker", "Worker.shutdown")
