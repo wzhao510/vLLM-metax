@@ -86,6 +86,7 @@ Below are the maintained branches:
 | Branch | Status | Note |
 | --- | --- | --- |
 | master | N/A | Tracks vLLM main; functionality is not guaranteed |
+| releases/v0.24.0 | Released | Corresponds to vLLM release v0.24.0 |
 | releases/v0.23.0 | Released | Corresponds to vLLM release v0.23.0 |
 | releases/v0.22.0 | Released | Corresponds to vLLM release v0.22.0 |
 | releases/v0.21.0 | Released | Corresponds to vLLM release v0.21.0 |
