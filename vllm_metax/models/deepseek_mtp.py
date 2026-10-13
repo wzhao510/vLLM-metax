@@ -66,7 +66,7 @@ class SharedHead(nn.Module):
         super().__init__()
         rotation_module_name = maybe_prefix(
             prefix,
-            "shared_head.prenorm_hadamard_rotation",
+            "prenorm_hadamard_rotation",
         )
         rotation_config = get_online_rotation_module_config(
             config,
