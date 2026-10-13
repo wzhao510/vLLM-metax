@@ -1,0 +1,48 @@
+git grep -n "deepseek" remotes/origin/mx/v0.26.0-glm -- vllm_metax/models/ | grep -i glm
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/__init__.py:10:        "DeepSeekMTPModel", "vllm_metax.models.deepseek_mtp:DeepSeekMTP"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/__init__.py:14:        "DeepseekV2ForCausalLM", "vllm_metax.models.deepseek_v2:DeepseekV2ForCausalLM"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/__init__.py:18:        "DeepseekV3ForCausalLM", "vllm_metax.models.deepseek_v2:DeepseekV3ForCausalLM"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/__init__.py:22:        "DeepseekV32ForCausalLM", "vllm_metax.models.deepseek_v2:DeepseekV3ForCausalLM"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/__init__.py:26:        "GlmMoeDsaForCausalLM", "vllm_metax.models.deepseek_v2:GlmMoeDsaForCausalLM"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/__init__.py:30:        "DeepseekV4ForCausalLM", "vllm_metax.models.deepseek_v4:DeepseekV4ForCausalLM",
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/__init__.py:34:        "DeepSeekV4MTPModel", "vllm_metax.models.deepseek_v4:DeepSeekV4MTP"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_mtp.py:32:from .deepseek_v2 import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_mtp.py:153:        # Matches SGLang's deepseek_nextn.
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:541:                "deepseek_yarn"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:543:                else "deepseek_llama_scaling"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:555:            and config.rope_parameters["rope_type"] == "deepseek_yarn"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:1042:                "deepseek_yarn"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:1044:                else "deepseek_llama_scaling"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:1056:            and config.rope_parameters["rope_type"] == "deepseek_yarn"
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:1195:        use_mha = config.model_type == "deepseek" or all(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:1401:        self.use_mha = config.model_type == "deepseek" or all(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v2.py:1803:        self.use_mha = config.model_type == "deepseek" or all(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/attention.py:38:from vllm.models.deepseek_v4.common.rope import build_deepseek_v4_rope
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/attention.py:51:from vllm.models.deepseek_v4.attention import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/attention.py:56:from vllm.models.deepseek_v4.common.ops import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/attention.py:110:    deepseek_v4 model module. The base is never instantiated directly.
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/attention.py:203:        self.rotary_emb = build_deepseek_v4_rope(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/attention.py:326:            return torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/attention.py:345:            torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_full_cache_bf16_insert(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/attention.py:366:        torch.ops._C.fused_deepseek_v4_qnorm_rope_kv_rope_full_cache_fp8_insert(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/compressor.py:12:from vllm.models.deepseek_v4.common.ops.save_partial_states import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/compressor.py:17:from vllm.models.deepseek_v4.compressor import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/flashmla.py:11:from vllm.models.deepseek_v4.common.ops import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/flashmla.py:24:from vllm.models.deepseek_v4.sparse_mla import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/model.py:71:from vllm.models.deepseek_v4.nvidia.ops.prepare_megamoe import prepare_megamoe_inputs
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/model.py:139:def make_deepseek_v4_expert_params_mapping(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/model.py:1233:            return make_deepseek_v4_expert_params_mapping(self.config.n_routed_experts)
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/model.py:1249:def _make_deepseek_v4_weights_mapper(expert_dtype: str) -> WeightsMapper:
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/model.py:1330:    hf_to_vllm_mapper = _make_deepseek_v4_weights_mapper("fp4")
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/model.py:1339:            self.hf_to_vllm_mapper = _make_deepseek_v4_weights_mapper(expert_dtype)
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/mtp.py:6:Split from ``deepseek_mtp.py`` because the V4 architecture introduces several
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/mtp.py:42:from vllm.model_executor.models.deepseek_mtp import SharedHead
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/mtp.py:43:from vllm.model_executor.models.deepseek_v2 import get_spec_layer_idx_from_weight_name
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/mtp.py:45:from vllm.models.deepseek_v4.common.ops import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/mtp.py:55:    make_deepseek_v4_expert_params_mapping,
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/mtp.py:67:# ``_make_deepseek_v4_weights_mapper`` in deepseek_v4.py.
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/mtp.py:345:            expert_mapping = make_deepseek_v4_expert_params_mapping(
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/ops/fused_compress_quant_cache.py:6:from vllm.models.deepseek_v4.common.ops.fused_compress_quant_cache import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/ops/o_proj.py:9:from vllm.models.deepseek_v4.common.ops.fused_inv_rope_fp8_quant import (
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/deepseek_v4/sparse_mla.py:13:from vllm.models.deepseek_v4.sparse_mla import DeepseekV4FlashMLABackend
+remotes/origin/mx/v0.26.0-glm:vllm_metax/models/glm5next/attention.py:11:from vllm_metax.models.deepseek_v2 import DeepseekV32IndexerCache
