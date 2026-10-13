@@ -41,6 +41,11 @@ from vllm.model_executor.models.utils import (
 from vllm.platforms import current_platform
 from vllm.sequence import IntermediateTensors
 
+from vllm_metax.model_executor.layers.online_rotation import (
+    build_rotation,
+    get_online_rotation_module_config,
+)
+
 # NOTE(MetaX): Keep the draft block bound to the MACA decoder and its
 # BF16/INT8 indexer loader; the generic upstream decoder uses CUDA paths.
 from .deepseek_v2 import (
@@ -59,6 +64,18 @@ class SharedHead(nn.Module):
         quant_config: QuantizationConfig | None = None,
     ) -> None:
         super().__init__()
+        rotation_module_name = maybe_prefix(
+            prefix,
+            "shared_head.prenorm_hadamard_rotation",
+        )
+        rotation_config = get_online_rotation_module_config(
+            config,
+            rotation_module_name,
+        )
+        if rotation_config is not None:
+            self.prenorm_hadamard_rotation = build_rotation(rotation_config)
+        else:
+            self.prenorm_hadamard_rotation = None
         self.norm = RMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.head = ParallelLMHead(
             config.vocab_size,
@@ -68,6 +85,10 @@ class SharedHead(nn.Module):
         )
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        if self.prenorm_hadamard_rotation is not None:
+            hidden_states = self.prenorm_hadamard_rotation(
+                hidden_states,
+            )
         return self.norm(hidden_states)
 
 
