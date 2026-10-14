@@ -96,6 +96,11 @@ from vllm.platforms import current_platform
 from vllm.sequence import IntermediateTensors
 from vllm.utils.torch_utils import direct_register_custom_op
 from vllm.v1.attention.backend import AttentionBackend
+
+from vllm_metax.model_executor.layers.online_rotation import (
+    build_rotation,
+    get_online_rotation_module_config,
+)
 from vllm_metax.v1.attention.backends.mla.indexer import (
     MacaDeepseekV32IndexerBackend as DeepseekV32IndexerBackend,
 )
@@ -1385,9 +1390,24 @@ class DeepseekV2Model(nn.Module):
             prefix=f"{prefix}.layers",
         )
 
+        rotation_module_name = maybe_prefix(prefix, "prenorm_hadamard_rotation")
+        rotation_config = get_online_rotation_module_config(
+            config,
+            rotation_module_name,
+        )
+        self.use_hadamard_rotation = rotation_config is not None
+
         if get_pp_group().is_last_rank:
+            self.prenorm_hadamard_rotation = (
+                build_rotation(rotation_config)
+                if rotation_config is not None
+                else None
+            )
             self.norm = RMSNorm(self.hidden_size, eps=config.rms_norm_eps)
         else:
+            self.prenorm_hadamard_rotation = (
+                PPMissingLayer() if self.use_hadamard_rotation else None
+            )
             self.norm = PPMissingLayer()
         self.make_empty_intermediate_tensors = make_empty_intermediate_tensors_factory(
             ["hidden_states", "residual"], self.hidden_size
@@ -1493,7 +1513,14 @@ class DeepseekV2Model(nn.Module):
         if self.end_layer in self.aux_hidden_state_layers:
             aux_hidden_states.append(hidden_states + residual)
 
-        hidden_states, _ = self.norm(hidden_states, residual)
+        if self.use_hadamard_rotation:
+            hidden_states = self.prenorm_hadamard_rotation(
+                hidden_states + residual,
+            )
+            hidden_states = self.norm(hidden_states)
+        else:
+            hidden_states, _ = self.norm(hidden_states, residual)
+
         if len(aux_hidden_states) > 0:
             return hidden_states, aux_hidden_states
         return hidden_states
