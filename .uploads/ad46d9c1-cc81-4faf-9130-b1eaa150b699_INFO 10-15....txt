@@ -1,0 +1,288 @@
+INFO 10-15 16:35:15 [__init__.py:52] Available plugins for group vllm.platform_plugins:
+INFO 10-15 16:35:15 [__init__.py:54] - metax -> vllm_metax:register
+INFO 10-15 16:35:15 [__init__.py:57] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+INFO 10-15 16:35:15 [__init__.py:237] Platform plugin metax is activated
+INFO 10-15 16:35:15 [envs.py:132] Plugin sets VLLM_USE_FLASHINFER_SAMPLER to False. Reason: controlled by VLLM_METAX_USE_FLASHINFER_SAMPLER; disabled by default
+INFO 10-15 16:35:15 [envs.py:132] Plugin sets VLLM_ENGINE_READY_TIMEOUT_S to 7200. Reason: set timeout to 7200s for model loading
+INFO 10-15 16:35:15 [envs.py:132] Plugin sets VLLM_FLOAT32_MATMUL_PRECISION to high. Reason: set float32 matmul precision to high for better performance on Maca platform
+INFO 10-15 16:35:15 [envs.py:132] Plugin sets VLLM_USE_DEEP_GEMM_E8M0 to False. Reason: USE_DEEP_GEMM_E8M0 default to false on Maca platform
+[16:35:39.738][MCC][E]ModuleLoad file:/opt/maca-3.8.0.16/lib//mctlassEx_xcore1000.mcfb not found
+[16:35:39.738][MCR][E]mc_runtime_api.cpp       :2329: 3781 : [7d2a70f88740] mcModuleLoad: Returned mcErrorFileNotFound
+[16:35:39.738][MCTLASSEX][E]module.h                :63  : [ModuleManager]load module failed mctlassEx_xcore1000.mcfb
+INFO Print the version information of mcoplib during compilation.
+
+Version info:Mcoplib_Version = '0.4.10'
+Build_Maca_Version = '3.8.0.16.c600u'
+Build_Torch_Version = '2.10.0+metax3.8.0.4.c600u'
+Min_Compatibility_Maca_Version = '3.7.0'
+GIT_BRANCH = 'unknown'
+GIT_COMMIT = 'unknown'
+Vllm Op Version = 0.25.0
+SGlang Op Version  = 0.5.13 
+
+INFO Staring Check the torch version compatibility of the operating environment.
+
+INFO: Torch version compatibility check passed: build=2.10.0+metax3.8.0.4.c600u, runtime=2.10.0+metax3.8.0.4.c600u.
+
+INFO Staring Check the current MACA version of the operating environment.
+
+INFO: Release major.minor matching,  successful:3.8. 
+
+INFO Staring Check the MACA minimum compatibility version of the operating environment.
+
+INFO: MACA minimum compatibility check passed: 3.8.0.16 >= 3.7.0.
+
+(APIServer pid=3781) INFO 10-15 16:35:42 [api_utils.py:345] 
+(APIServer pid=3781) INFO 10-15 16:35:42 [api_utils.py:345]        █     █     █▄   ▄█
+(APIServer pid=3781) INFO 10-15 16:35:42 [api_utils.py:345]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.27.2rc1.dev22+gb908a21f9.d20260826
+(APIServer pid=3781) INFO 10-15 16:35:42 [api_utils.py:345]   █▄█▀ █     █     █     █  model   /external/ai/models/LLM-Quant/taojiang/GLM/GLM-53-Flash-QuarotV2-FlexSMQ-W48A8/vllm_quant_model
+(APIServer pid=3781) INFO 10-15 16:35:42 [api_utils.py:345]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=3781) INFO 10-15 16:35:42 [api_utils.py:345] 
+(APIServer pid=3781) INFO 10-15 16:35:42 [api_utils.py:273] non-default args: {'model_tag': '/external/ai/models/LLM-Quant/taojiang/GLM/GLM-53-Flash-QuarotV2-FlexSMQ-W48A8/vllm_quant_model', 'model': '/external/ai/models/LLM-Quant/taojiang/GLM/GLM-53-Flash-QuarotV2-FlexSMQ-W48A8/vllm_quant_model', 'trust_remote_code': True, 'dtype': 'bfloat16', 'max_model_len': 4096}
+(APIServer pid=3781) INFO 10-15 16:35:42 [model.py:679] Resolved architecture: Glm5NextForConditionalGeneration
+(APIServer pid=3781) INFO 10-15 16:35:42 [model.py:1972] Using max model len 4096
+(APIServer pid=3781) INFO 10-15 16:35:44 [config.py:605] Mamba cache mode is set to 'align' for Glm5NextForConditionalGeneration by default when prefix caching is enabled
+(APIServer pid=3781) /opt/conda/lib/python3.10/site-packages/compressed_tensors/quantization/quant_args.py:368: UserWarning: No observer is used for dynamic quant., setting to None
+(APIServer pid=3781)   warnings.warn(
+(APIServer pid=3781) INFO 10-15 16:35:44 [vllm.py:1319] Auto-enabling VLLM_USE_BREAKABLE_CUDAGRAPH=1. Set VLLM_USE_BREAKABLE_CUDAGRAPH=0 to opt out.
+(APIServer pid=3781) INFO 10-15 16:35:44 [kernel.py:306] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native'])
+(APIServer pid=3781) INFO 10-15 16:35:44 [envs.py:132] Plugin sets VLLM_TUNED_CONFIG_FOLDER to /opt/conda/lib/python3.10/site-packages/vllm_metax/model_executor/layers/fused_moe/configs/H=4096. Reason: set FusedMoE tuned config dir by hidden_size=4096
+(APIServer pid=3781) INFO 10-15 16:35:44 [compilation.py:329] Enabled custom fusions: norm_quant, act_quant
+(APIServer pid=3781) [transformers] The following generation flags are not valid and may be ignored: ['top_p']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+INFO 10-15 16:35:49 [__init__.py:52] Available plugins for group vllm.platform_plugins:
+INFO 10-15 16:35:49 [__init__.py:54] - metax -> vllm_metax:register
+INFO 10-15 16:35:49 [__init__.py:57] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+INFO 10-15 16:35:49 [__init__.py:237] Platform plugin metax is activated
+INFO 10-15 16:35:49 [envs.py:132] Plugin sets VLLM_USE_FLASHINFER_SAMPLER to False. Reason: controlled by VLLM_METAX_USE_FLASHINFER_SAMPLER; disabled by default
+INFO 10-15 16:35:49 [envs.py:132] Plugin sets VLLM_ENGINE_READY_TIMEOUT_S to 7200. Reason: set timeout to 7200s for model loading
+INFO 10-15 16:35:49 [envs.py:132] Plugin sets VLLM_FLOAT32_MATMUL_PRECISION to high. Reason: set float32 matmul precision to high for better performance on Maca platform
+INFO 10-15 16:35:49 [envs.py:132] Plugin sets VLLM_USE_DEEP_GEMM_E8M0 to False. Reason: USE_DEEP_GEMM_E8M0 default to false on Maca platform
+[16:36:12.461][MCC][E]ModuleLoad file:/opt/maca-3.8.0.16/lib//mctlassEx_xcore1000.mcfb not found
+[16:36:12.461][MCR][E]mc_runtime_api.cpp       :2329: 4231 : [7878ffc77740] mcModuleLoad: Returned mcErrorFileNotFound
+[16:36:12.461][MCTLASSEX][E]module.h                :63  : [ModuleManager]load module failed mctlassEx_xcore1000.mcfb
+Current Python version 3.10 is below the recommended 3.11 version. It is recommended to upgrade to Python 3.11 or higher for the best experience.
+torch.compile is not available in Python 3.10, using identity decorator instead
+INFO Print the version information of mcoplib during compilation.
+
+Version info:Mcoplib_Version = '0.4.10'
+Build_Maca_Version = '3.8.0.16.c600u'
+Build_Torch_Version = '2.10.0+metax3.8.0.4.c600u'
+Min_Compatibility_Maca_Version = '3.7.0'
+GIT_BRANCH = 'unknown'
+GIT_COMMIT = 'unknown'
+Vllm Op Version = 0.25.0
+SGlang Op Version  = 0.5.13 
+
+INFO Staring Check the torch version compatibility of the operating environment.
+
+INFO: Torch version compatibility check passed: build=2.10.0+metax3.8.0.4.c600u, runtime=2.10.0+metax3.8.0.4.c600u.
+
+INFO Staring Check the current MACA version of the operating environment.
+
+INFO: Release major.minor matching,  successful:3.8. 
+
+INFO Staring Check the MACA minimum compatibility version of the operating environment.
+
+INFO: MACA minimum compatibility check passed: 3.8.0.16 >= 3.7.0.
+
+(EngineCore pid=4231) INFO 10-15 16:36:15 [core.py:122] Initializing a V1 LLM engine (v0.27.2rc1.dev22+gb908a21f9.d20260826) with config: model='/external/ai/models/LLM-Quant/taojiang/GLM/GLM-53-Flash-QuarotV2-FlexSMQ-W48A8/vllm_quant_model', speculative_config=None, tokenizer='/external/ai/models/LLM-Quant/taojiang/GLM/GLM-53-Flash-QuarotV2-FlexSMQ-W48A8/vllm_quant_model', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=True, dtype=torch.bfloat16, max_seq_len=4096, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=True, quantization=compressed-tensors, quantization_config=None, enforce_eager=False, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False, jit_monitor_mode='warn', jit_monitor_verbose=False), seed=0, served_model_name=/external/ai/models/LLM-Quant/taojiang/GLM/GLM-53-Flash-QuarotV2-FlexSMQ-W48A8/vllm_quant_model, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.NONE: 0>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['all'], 'ir_enable_torch_wrap': False, 'splitting_ops': [], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': [], 'compile_ranges_endpoints': [2048], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'size_asserts': False, 'alignment_asserts': False, 'scalar_asserts': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1)>, 'cudagraph_num_of_warmups': 1, 'cudagraph_capture_sizes': [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232, 240, 248, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, 464, 480, 496, 512], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False, 'enable_qk_norm_rope_fusion': False, 'fuse_rope_kvcache_cat_mla': False, 'fuse_act_padding': False, 'fuse_qk_norm_rope_kvcache': False}, 'max_cudagraph_capture_size': 512, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': True, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native']), enable_flashinfer_autotune=True, enable_cutedsl_warmup=True, enable_jit_warmup=True, enable_bf16x3_router_gemm=False, moe_backend='auto', linear_backend='auto')
+(EngineCore pid=4231) INFO 10-15 16:36:17 [parallel_state.py:1638] world_size=1 rank=0 local_rank=0 distributed_init_method=file:///tmp/vllm_dist_ed2484f5b0c5449292c7ae00193e2798 backend=nccl
+(EngineCore pid=4231) INFO 10-15 16:36:17 [parallel_state.py:1982] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank 0, EPLB rank N/A
+(EngineCore pid=4231) INFO 10-15 16:36:17 [gpu_worker.py:386] Using V2 Model Runner
+(EngineCore pid=4231) INFO 10-15 16:36:18 [model_runner.py:353] Loading model from scratch...
+(EngineCore pid=4231) INFO 10-15 16:36:18 [fa_utils.py:25] Using Maca version of flash attention, which only supports version 2.
+(EngineCore pid=4231) INFO 10-15 16:36:18 [mm_encoder_attention.py:76] Using AttentionBackendEnum.FLASH_ATTN for MMEncoderAttention.
+(EngineCore pid=4231) INFO 10-15 16:36:18 [mm_encoder_attention.py:79] Using AttentionBackendEnum.FLASH_ATTN for MacaMMEncoderAttention.
+(EngineCore pid=4231) INFO 10-15 16:36:18 [kernel.py:306] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native'])
+(EngineCore pid=4231) INFO 10-15 16:36:18 [envs.py:132] Plugin sets VLLM_TUNED_CONFIG_FOLDER to /opt/conda/lib/python3.10/site-packages/vllm_metax/model_executor/layers/fused_moe/configs/H=4096. Reason: set FusedMoE tuned config dir by hidden_size=4096
+(EngineCore pid=4231) INFO 10-15 16:36:18 [compilation.py:329] Enabled custom fusions: norm_quant, act_quant
+(EngineCore pid=4231) INFO 10-15 16:36:18 [__init__.py:728] Selected MctlassScaledMMLinearKernel for CompressedTensorsW8A8Int8
+(EngineCore pid=4231) INFO 10-15 16:36:18 [platform.py:476] Some attention backends are not valid for maca with AttentionSelectorConfig(head_size=512, dtype=torch.bfloat16, kv_cache_dtype=auto, block_size=None, use_mla=True, has_sink=False, use_sparse=True, use_mm_prefix=False, use_per_head_quant_scales=False, attn_type=decoder, has_sliding_window=False, use_non_causal=False, use_batch_invariant=False, use_kv_connector=False, use_adaptive_verification=False, use_pcp=False). Reasons: {FLASHMLA: [sparse not supported], TRITON_MLA: [sparse not supported]}.
+(EngineCore pid=4231) INFO 10-15 16:36:18 [platform.py:488] Valid backends: ['FLASHMLA_SPARSE']
+(EngineCore pid=4231) INFO 10-15 16:36:18 [platform.py:519] Using FLASHMLA_SPARSE attention backend out of potential backends: ('FLASHMLA_SPARSE',)
+(EngineCore pid=4231) WARNING 10-15 16:36:18 [mla_attention.py:567] No MLA prefill backend supports this model; sparse MLA will use the top-k MQA path only (no dense-MHA prefill).
+(EngineCore pid=4231) INFO 10-15 16:36:18 [deep_gemm.py:139] DeepGEMM E8M0 disabled on current configuration.
+(EngineCore pid=4231) INFO 10-15 16:36:18 [int8.py:137] Using TRITON Int8 MoE backend out of potential backends: ['TRITON'].
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355] EngineCore failed to start.
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355] Traceback (most recent call last):
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 1324, in run_engine_core
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     engine_core = EngineCoreProc(*args, engine_index=dp_rank, **kwargs)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return func(*args, **kwargs)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 1082, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     super().__init__(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 133, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.model_executor = executor_class(vllm_config)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return func(*args, **kwargs)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/executor/abstract.py", line 109, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self._init_executor()
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/executor/uniproc_executor.py", line 74, in _init_executor
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.driver_worker.load_model()
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm_metax/v1/worker/gpu_worker.py", line 29, in load_model
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     super().load_model(load_dummy_weights=load_dummy_weights)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/worker/gpu_worker.py", line 443, in load_model
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.model_runner.load_model(load_dummy_weights=load_dummy_weights)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/worker/gpu/model_runner.py", line 355, in load_model
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.model = model_loader.load_model(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return func(*args, **kwargs)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/model_loader/base_loader.py", line 55, in load_model
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     model = initialize_model(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return func(*args, **kwargs)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/model_loader/utils.py", line 58, in initialize_model
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     model = model_class(vllm_config=vllm_config, prefix=prefix)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 1055, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.language_model = init_vllm_registered_model(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/models/utils.py", line 557, in init_vllm_registered_model
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return initialize_model(vllm_config=vllm_config, prefix=prefix)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return func(*args, **kwargs)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/model_loader/utils.py", line 58, in initialize_model
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     model = model_class(vllm_config=vllm_config, prefix=prefix)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 896, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.model = Glm5NextModel(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm_metax/patch/enhancement/glm5next_rotation.py", line 106, in _glm5next_model_init
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     _ORIG_MODEL_INIT(self, *args, **kwargs)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 648, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.start_layer, self.end_layer, self.layers = make_layers(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/models/utils.py", line 812, in make_layers
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     + get_offloader().wrap_modules(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/offloader/base.py", line 104, in wrap_modules
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return list(modules_generator)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/models/utils.py", line 813, in <genexpr>
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     layer_fn(prefix=f"{prefix}.{idx}") for idx in range(start_layer, end_layer)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 640, in get_layer
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return Glm5NextDecoderLayer(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 342, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.mlp = Glm5NextMoE(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 222, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.experts = FusedMoEFactory(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/layers/fused_moe/layer.py", line 375, in FusedMoEFactory
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     routed_experts = routed_experts_cls(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/layers/fused_moe/routed_experts.py", line 175, in __init__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     self.quant_method.create_weights(layer=self, **moe_quant_params)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/layers/quantization/compressed_tensors/compressed_tensors_moe/compressed_tensors_moe_w8a8_int8.py", line 91, in create_weights
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     torch.empty(
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]   File "/opt/conda/lib/python3.10/site-packages/torch/utils/_device.py", line 109, in __torch_function__
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355]     return func(*args, **kwargs)
+(EngineCore pid=4231) ERROR 10-15 16:36:19 [core.py:1355] torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 4.50 GiB. GPU 0 has a total capacity of 63.59 GiB of which 844.38 MiB is free. Of the allocated memory 60.15 GiB is allocated by PyTorch, and 1.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+(EngineCore pid=4231) Process EngineCore:
+(EngineCore pid=4231) Traceback (most recent call last):
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+(EngineCore pid=4231)     self.run()
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/multiprocessing/process.py", line 108, in run
+(EngineCore pid=4231)     self._target(*self._args, **self._kwargs)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 1359, in run_engine_core
+(EngineCore pid=4231)     raise e
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 1324, in run_engine_core
+(EngineCore pid=4231)     engine_core = EngineCoreProc(*args, engine_index=dp_rank, **kwargs)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231)     return func(*args, **kwargs)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 1082, in __init__
+(EngineCore pid=4231)     super().__init__(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core.py", line 133, in __init__
+(EngineCore pid=4231)     self.model_executor = executor_class(vllm_config)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231)     return func(*args, **kwargs)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/executor/abstract.py", line 109, in __init__
+(EngineCore pid=4231)     self._init_executor()
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/executor/uniproc_executor.py", line 74, in _init_executor
+(EngineCore pid=4231)     self.driver_worker.load_model()
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm_metax/v1/worker/gpu_worker.py", line 29, in load_model
+(EngineCore pid=4231)     super().load_model(load_dummy_weights=load_dummy_weights)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/worker/gpu_worker.py", line 443, in load_model
+(EngineCore pid=4231)     self.model_runner.load_model(load_dummy_weights=load_dummy_weights)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/worker/gpu/model_runner.py", line 355, in load_model
+(EngineCore pid=4231)     self.model = model_loader.load_model(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231)     return func(*args, **kwargs)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/model_loader/base_loader.py", line 55, in load_model
+(EngineCore pid=4231)     model = initialize_model(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231)     return func(*args, **kwargs)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/model_loader/utils.py", line 58, in initialize_model
+(EngineCore pid=4231)     model = model_class(vllm_config=vllm_config, prefix=prefix)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 1055, in __init__
+(EngineCore pid=4231)     self.language_model = init_vllm_registered_model(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/models/utils.py", line 557, in init_vllm_registered_model
+(EngineCore pid=4231)     return initialize_model(vllm_config=vllm_config, prefix=prefix)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(EngineCore pid=4231)     return func(*args, **kwargs)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/model_loader/utils.py", line 58, in initialize_model
+(EngineCore pid=4231)     model = model_class(vllm_config=vllm_config, prefix=prefix)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 896, in __init__
+(EngineCore pid=4231)     self.model = Glm5NextModel(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm_metax/patch/enhancement/glm5next_rotation.py", line 106, in _glm5next_model_init
+(EngineCore pid=4231)     _ORIG_MODEL_INIT(self, *args, **kwargs)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 648, in __init__
+(EngineCore pid=4231)     self.start_layer, self.end_layer, self.layers = make_layers(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/models/utils.py", line 812, in make_layers
+(EngineCore pid=4231)     + get_offloader().wrap_modules(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/offloader/base.py", line 104, in wrap_modules
+(EngineCore pid=4231)     return list(modules_generator)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/models/utils.py", line 813, in <genexpr>
+(EngineCore pid=4231)     layer_fn(prefix=f"{prefix}.{idx}") for idx in range(start_layer, end_layer)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 640, in get_layer
+(EngineCore pid=4231)     return Glm5NextDecoderLayer(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 342, in __init__
+(EngineCore pid=4231)     self.mlp = Glm5NextMoE(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py", line 222, in __init__
+(EngineCore pid=4231)     self.experts = FusedMoEFactory(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/layers/fused_moe/layer.py", line 375, in FusedMoEFactory
+(EngineCore pid=4231)     routed_experts = routed_experts_cls(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/layers/fused_moe/routed_experts.py", line 175, in __init__
+(EngineCore pid=4231)     self.quant_method.create_weights(layer=self, **moe_quant_params)
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/vllm/model_executor/layers/quantization/compressed_tensors/compressed_tensors_moe/compressed_tensors_moe_w8a8_int8.py", line 91, in create_weights
+(EngineCore pid=4231)     torch.empty(
+(EngineCore pid=4231)   File "/opt/conda/lib/python3.10/site-packages/torch/utils/_device.py", line 109, in __torch_function__
+(EngineCore pid=4231)     return func(*args, **kwargs)
+(EngineCore pid=4231) torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 4.50 GiB. GPU 0 has a total capacity of 63.59 GiB of which 844.38 MiB is free. Of the allocated memory 60.15 GiB is allocated by PyTorch, and 1.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank0]:[W1015 16:36:19.350897861 ProcessGroupNCCL.cpp:1559] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+(APIServer pid=3781) INFO 10-15 16:36:29 [utils.py:615] [shutdown] Process manager: send sigterm to process EngineCore
+(APIServer pid=3781) Traceback (most recent call last):
+(APIServer pid=3781)   File "/opt/conda/bin/vllm", line 8, in <module>
+(APIServer pid=3781)     sys.exit(main())
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/entrypoints/cli/main.py", line 97, in main
+(APIServer pid=3781)     args.dispatch_function(args)
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/entrypoints/cli/serve.py", line 152, in cmd
+(APIServer pid=3781)     uvloop.run(run_server(args))
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/uvloop/__init__.py", line 69, in run
+(APIServer pid=3781)     return loop.run_until_complete(wrapper())
+(APIServer pid=3781)   File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/uvloop/__init__.py", line 48, in wrapper
+(APIServer pid=3781)     return await main
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/entrypoints/openai/api_server.py", line 764, in run_server
+(APIServer pid=3781)     await run_server_worker(listen_address, sock, args, **uvicorn_kwargs)
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/entrypoints/openai/api_server.py", line 778, in run_server_worker
+(APIServer pid=3781)     async with build_async_engine_client(
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/contextlib.py", line 199, in __aenter__
+(APIServer pid=3781)     return await anext(self.gen)
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/entrypoints/openai/api_server.py", line 132, in build_async_engine_client
+(APIServer pid=3781)     async with build_async_engine_client_from_engine_args(
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/contextlib.py", line 199, in __aenter__
+(APIServer pid=3781)     return await anext(self.gen)
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/entrypoints/openai/api_server.py", line 168, in build_async_engine_client_from_engine_args
+(APIServer pid=3781)     async_llm = AsyncLLM.from_vllm_config(
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/async_llm.py", line 220, in from_vllm_config
+(APIServer pid=3781)     return cls(
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/async_llm.py", line 149, in __init__
+(APIServer pid=3781)     self.engine_core = EngineCoreClient.make_async_mp_client(
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(APIServer pid=3781)     return func(*args, **kwargs)
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core_client.py", line 139, in make_async_mp_client
+(APIServer pid=3781)     return AsyncMPClient(*client_args)
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/tracing/otel.py", line 178, in sync_wrapper
+(APIServer pid=3781)     return func(*args, **kwargs)
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core_client.py", line 990, in __init__
+(APIServer pid=3781)     super().__init__(
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/core_client.py", line 609, in __init__
+(APIServer pid=3781)     with launch_core_engines(
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/contextlib.py", line 142, in __exit__
+(APIServer pid=3781)     next(self.gen)
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/utils.py", line 1206, in launch_core_engines
+(APIServer pid=3781)     wait_for_engine_startup(
+(APIServer pid=3781)   File "/opt/conda/lib/python3.10/site-packages/vllm/v1/engine/utils.py", line 1286, in wait_for_engine_startup
+(APIServer pid=3781)     raise RuntimeError(
+(APIServer pid=3781) RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}
