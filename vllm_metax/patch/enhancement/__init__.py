@@ -22,3 +22,4 @@ from . import joyai_support  # noqa: F401
 from . import utils  # noqa: F401
 
 from . import dbo  # noqa: F401
+from . import glm5next_rotation  # noqa: F401 — QuaRot online inverse rotation
