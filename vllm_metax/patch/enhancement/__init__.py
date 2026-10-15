@@ -23,3 +23,4 @@ from . import utils  # noqa: F401
 
 from . import dbo  # noqa: F401
 from . import glm5next_rotation  # noqa: F401 — QuaRot online inverse rotation
+from . import compressed_tensors_moe_scheme  # noqa: F401 — FusedMoE target group
