@@ -1,0 +1,200 @@
+(base) root@pde-ai-10-0-96-31:/tmp
+$ cd /tmp
+cat > /tmp/diag2.sh <<'EOF'
+PY=/opt/conda/bin/python3.10
+grab() { $PY -c "import $1,os;print('R='+os.path.dirname($1.__file__))" 2>&1 | grep '^R=' | tail -1 | cut -d= -f2-; }
+SITE=$(grab vllm_metax)
+VLLM=$(grab vllm)
+echo "SITE=$SITE"
+echo "VLLM=$VLLM"
+
+echo "===== [A] vllm_metax 里 enhancement 的加载链路 + kernels 是否存在 ====="
+grep -rn "enhancement" $SITE/patch/__init__.py $SITE/__init__.py 2>/dev/null | head
+echo "-- installed kernels 目录 --"
+find $SITE/model_executor/kernels -maxdepth 2 2>&1 | sort | head -20
+echo "-- installed enhancement/__init__.py 全文 --"
+cat $SITE/patch/enhancement/__init__.py
+
+echo "===== [B] 依赖可用性 ====="
+$PY -c "import tilelang; print('tilelang', tilelang.__version__)" 2>&1 | tail -2
+$PY -c "from vllm.utils.torch_utils import direct_register_custom_op; print('direct_register_custom_op OK')" 2>&1 | tail -2
+
+echo "===== [C] vLLM glm5next 文件树 ====="
+find $VLLM/models/glm5next 2>&1 | sort
+echo "-- registry 注册情况 --"
+grep -rn "glm5next\|Glm5Next" $VLLM/model_executor/models/registry.py 2>/dev/null | head
+
+echo "===== [D] glm5next 里所有 class / def 定义位置 ====="
+grep -rn "^class \|^def " $VLLM/models/glm5next 2>/dev/null
+echo "-- 关键 import（SharedHead / RMSNorm / maybe_prefix） --"
+grep -rn "SharedHead\|maybe_prefix\|RMSNorm" $VLLM/models/glm5next 2>/dev/null | head -20
+
+echo "===== [E] trunk 最终 norm 调用 & MTP shared_head 调用 ====="
+grep -rn "self\.norm(" $VLLM/models/glm5next 2>/dev/null
+echo "--"
+grep -rn "shared_head" $VLLM/models/glm5next 2>/dev/null
+echo "--"
+grep -rn "self\.norm = \|self\.shared_head = " $VLLM/models/glm5next 2>/dev/null
+
+echo "===== [F] 上游 SharedHead 里有没有 rotation ====="
+UP=$VLLM/model_executor/models/deepseek_mtp.py
+ls -l $UP 2>&1
+grep -n "prenorm_hadamard_rotation\|online_rotation\|class SharedHead" $UP 2>/dev/null
+
+echo "===== [G] 上游 vLLM 全局是否有 rotation 概念 ====="
+grep -rln "prenorm_hadamard_rotation\|CompositeHadamardRotation\|online_rotation" $VLLM 2>/dev/null | head
+
+echo "===== [H] Glm5NextModel 的 __init__ 签名 + prefix 传递 ====="
+grep -rn "Glm5NextModel(\|Glm5NextModel\b" $VLLM/models/glm5next 2>/dev/null | head -20
+EOF
+bash /tmp/diag2.sh 2>&1 | tail -150
+===== [A] vllm_metax 里 enhancement 的加载链路 + kernels 是否存在 =====
+/opt/conda/lib/python3.10/site-packages/vllm_metax/__init__.py:22:    import vllm_metax.patch.enhancement  # noqa: F401
+-- installed kernels 目录 --
+find: '/opt/conda/lib/python3.10/site-packages/vllm_metax/model_executor/kernels': No such file or directory
+-- installed enhancement/__init__.py 全文 --
+# SPDX-License-Identifier: Apache-2.0
+# 2026 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. All Rights Reserved.
+# -----------------------------------------------
+# Note: Aggregate plugin enhancement patches and registration hooks.
+#
+# Affected versions: v0.21.0
+# -----------------------------------------------
+# module level imports
+from . import chores  # noqa: F401
+from . import distributed  # noqa: F401
+from . import MRV2  # noqa: F401
+from . import quant_kernels  # noqa: F401
+from . import joyai_support  # noqa: F401
+
+# single files
+from . import device_allocator  # noqa: F401
+from . import utils  # noqa: F401
+from . import glm5next_support  # noqa: F401
+===== [B] 依赖可用性 =====
+tilelang 0.1.11+maca
+INFO 10-15 15:54:55 [envs.py:132] Plugin sets VLLM_USE_DEEP_GEMM_E8M0 to False. Reason: USE_DEEP_GEMM_E8M0 default to false on Maca platform
+direct_register_custom_op OK
+===== [C] vLLM glm5next 文件树 =====
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/__init__.py
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/__pycache__
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/__pycache__/__init__.cpython-310.pyc
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/__pycache__
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/__pycache__/attention.cpython-310.pyc
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/__pycache__/kda.cpython-310.pyc
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/__pycache__/model.cpython-310.pyc
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/__pycache__/mtp.cpython-310.pyc
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/__pycache__/multimodal.cpython-310.pyc
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/kda.py
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/__pycache__
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/__pycache__/fused_eh_norm.cpython-310.pyc
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/__pycache__/kpool_compress.cpython-310.pyc
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/fused_eh_norm.py
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py
+-- registry 注册情况 --
+119:    "Glm5NextForCausalLM": ("vllm.models.glm5next", "Glm5NextForCausalLM"),
+425:    "Glm5NextForConditionalGeneration": (
+426:        "vllm.models.glm5next",
+427:        "Glm5NextForConditionalGeneration",
+672:    "Glm5NextMTPModel": ("vllm.models.glm5next", "Glm5NextMTP"),
+===== [D] glm5next 里所有 class / def 定义位置 =====
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:54:def _fused_indexer_k_norm(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:62:def _fused_indexer_weight_scale(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:71:def _pad_indexer_heads(x: torch.Tensor, pad: int) -> torch.Tensor:
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:78:class Glm5NextIndexerCache(DeepseekV32IndexerCache):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:155:class Glm5NextTailCache(DeepseekV32IndexerCache):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:206:class Indexer(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:414:class Glm5NextMLAAttention(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/kda.py:58:class _Glm5NextMergedColumnParallelLinear(MergedColumnParallelLinear):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/kda.py:126:def _cast_sigmoid(x: torch.Tensor) -> torch.Tensor:
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/kda.py:131:class Glm5NextLinearAttention(GatedDeltaNetAttention):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:95:class Glm5NextMLP(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:148:class Glm5NextMoE(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:275:class Glm5NextDecoderLayer(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:575:class Glm5NextModel(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:886:class Glm5NextForCausalLM(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:986:class Glm5NextForConditionalGeneration(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:1076:def get_spec_layer_idx_from_weight_name(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:1091:def _try_load_fp8_indexer_wk(name, tensor, buf, params_dict, loaded_params):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:1121:def _dequant_fp8_block(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:1158:def _try_load_fp8_attn_proj(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:57:class Glm5NextVisionPatchEmbed(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:86:class Glm5NextVisionMLP(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:126:class Glm5NextVisionAttention(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:243:class Glm5NextVisionBlock(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:295:class Glm5NextPatchMerger(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:348:class Glm5NextVisionTransformer(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:636:class Glm5NextProcessingInfo(Glm4vProcessingInfo):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:30:def _hadamard128_stage(x, GROUPS: tl.constexpr, STRIDE: tl.constexpr):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:40:def _hadamard128(x):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:51:def _hadamard128_torch(x: torch.Tensor) -> torch.Tensor:
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:65:def _fwht_stage(x, N: tl.constexpr, GROUPS: tl.constexpr, STRIDE: tl.constexpr):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:78:def _fwht_quant_kernel(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:127:def fwht128_quant_fp8(q: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:160:def compute_pooled_write_locs(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:183:def build_pooled_page_table(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:207:def _kpool_softmax_rotate_write_cache_kernel(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:329:def kpool_compress_and_write_cache(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:449:def _kpool_tail_seed_kernel(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:488:def kpool_seed_tail_cache(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:529:def _kpool_decode_update_batched_kernel(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:700:def kpool_decode_update_and_maybe_write_cache_batched(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:797:def history_group_budget_for_topk(topk: int, pool_size: int) -> int:
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:803:def expand_pools_to_tokens(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:843:def append_tail_to_topk(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:909:def _expand_pools_and_append_tail_kernel(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/kpool_compress.py:950:def expand_pools_and_append_tail(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/fused_eh_norm.py:9:def _rms_norm(x, w, eps, HIDDEN_SIZE: tl.constexpr):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/fused_eh_norm.py:18:def _fused_eh_norm_kernel(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/ops/fused_eh_norm.py:52:def fused_eh_norm(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:38:class Glm5NextMultiTokenPredictorLayer(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:125:class Glm5NextMultiTokenPredictor(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:220:class Glm5NextMTP(nn.Module, DeepseekV2MixtureOfExperts):
+-- 关键 import（SharedHead / RMSNorm / maybe_prefix） --
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:16:from vllm.model_executor.layers.layernorm import LayerNorm, RMSNorm
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:473:            self.q_a_layernorm = RMSNorm(self.q_lora_rank, eps=config.rms_norm_eps)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/attention.py:489:        self.kv_a_layernorm = RMSNorm(self.kv_lora_rank, eps=config.rms_norm_eps)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/kda.py:50:    FusedRMSNormGated,
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/kda.py:278:        self.o_norm = FusedRMSNormGated(self.head_dim, activation="sigmoid")
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:25:from vllm.model_executor.layers.layernorm import RMSNorm
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:75:    maybe_prefix,
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:357:        self.input_layernorm = RMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:366:        self.post_attention_layernorm = RMSNorm(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:481:        # Fuse post-attn hc_post + pre-FFN hc_pre (+ RMSNorm) into one kernel.
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:658:            self.norm = RMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:897:            vllm_config=vllm_config, prefix=maybe_prefix(prefix, "model")
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:904:                prefix=maybe_prefix(prefix, "lm_head"),
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:1051:                prefix=maybe_prefix(prefix, "visual"),
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:1058:                prefix=maybe_prefix(prefix, "language_model"),
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:8:  - P1: fused q/k RMSNorm (one kernel, two distinct weights) in the attention.
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:33:from vllm.model_executor.layers.layernorm import RMSNorm
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:153:        self.q_norm = RMSNorm(self.head_dim, eps=1e-5)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:154:        self.k_norm = RMSNorm(self.head_dim, eps=1e-5)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/multimodal.py:206:        # P1: fused q/k RMSNorm (two distinct weights, one launch; fp32, bit-identical).
+===== [E] trunk 最终 norm 调用 & MTP shared_head 调用 =====
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:721:        hidden_states = self.norm(hidden_states)
+--
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:431:                # into shared_head's fused_add_rms_norm (one kernel instead of
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:69:        self.shared_head = SharedHead(
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:121:        hidden_states, _ = self.shared_head.norm(hidden_states, residual=residual)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:200:        return self.logits_processor(mtp_layer.shared_head.head, hidden_states)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:216:            mtp_layer.shared_head.head, hidden_states
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:282:            "shared_head",
+--
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:658:            self.norm = RMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:660:            self.norm = PPMissingLayer()
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/mtp.py:69:        self.shared_head = SharedHead(
+===== [F] 上游 SharedHead 里有没有 rotation =====
+-rw-r--r-- 1 root root 22376 Aug 26 15:00 /opt/conda/lib/python3.10/site-packages/vllm/model_executor/models/deepseek_mtp.py
+47:class SharedHead(nn.Module):
+===== [G] 上游 vLLM 全局是否有 rotation 概念 =====
+===== [H] Glm5NextModel 的 __init__ 签名 + prefix 传递 =====
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:575:class Glm5NextModel(nn.Module):
+/opt/conda/lib/python3.10/site-packages/vllm/models/glm5next/nvidia/model.py:896:        self.model = Glm5NextModel(
