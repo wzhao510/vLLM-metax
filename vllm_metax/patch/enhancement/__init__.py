@@ -24,3 +24,6 @@ from . import utils  # noqa: F401
 from . import dbo  # noqa: F401
 from . import glm5next_rotation  # noqa: F401 — QuaRot online inverse rotation
 from . import compressed_tensors_moe_scheme  # noqa: F401 — FusedMoE target group
+
+# TEMPORARY debug helper — remove together with glm5next_moe_debug.py
+from . import glm5next_moe_debug  # noqa: F401 — dump MoE param names on KeyError
