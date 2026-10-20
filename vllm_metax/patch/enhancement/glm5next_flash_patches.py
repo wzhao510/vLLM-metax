@@ -2,40 +2,38 @@
 # 2026 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. All Rights Reserved.
 #
 # -----------------------------------------------------------------------------
-# GLM-5.3 Flash 成套适配包（MACA / vLLM 0.27.2rc1.dev22）
+# GLM-5.3 Flash 适配包（MACA / vLLM 0.27.2rc1.dev22）
 #
-# 三个 patch 相互独立，但在 Flash 模型加载 + 前向计算时**成套**生效：
+# 本文件只保留两块真正必要的补丁：
 #
-#   Patch 1  compressed_tensors MoE scheme 分组路由
-#     → 让 RoutedExperts 绑定到 ckpt 声明的 FusedMoE 目标组（W4A8）
-#       而不是被上游无条件别名到 Linear 组（W8A8）。
-#       不做这步 → W8A8 quant_method 分配 2× 体积的 int8 权重 → 单卡 OOM，
-#       且 ckpt 的 INT32 packed 张量根本装不进 int8 权重。
+#   Patch 1  compact-tensors MoE scheme 分组路由
+#     ckpt 里 MoE 专家是独立的一组量化参数：
+#         group_0  targets=['Linear']    weights=8  input=8
+#         group_1  targets=['FusedMoE']  weights=4  input=8
+#     但上游 CompressedTensorsConfig 会把 RoutedExperts 无条件别名到
+#     Linear 组（W8A8）。结果 MoE 走 W8A8：
+#       - 分配 2 倍体积的 int8 权重 -> 单卡 OOM；
+#       - 注册的参数叫 w13_weight / w2_weight，
+#         而 ckpt 里是 *_weight_packed -> KeyError。
+#     修法：在配置对象构造完成时就把 RoutedExperts 指向 FusedMoE 组，
+#     这样后面无论哪个版本的 get_moe_method 都不会再把它改回 Linear。
 #
-#   Patch 2  RoutedExperts params mapping 扁平命名修复
-#     → 上游虚构了 ".routed_experts." 中间子模块层级：
-#         param_name = "experts.routed_experts.w2_"
-#       但 FusedMoEFactory 把 RoutedExperts 扁平注册在父模块 "experts" 下，
-#       所以 W4A8 quant_method 注册的参数名是扁平的：
-#         layer.register_parameter("w2_weight_packed", ...)
-#       结果：name.replace(weight_name, param_name) 必然落到不存在的 key
-#       → KeyError: '...experts.routed_experts.w2_weight_packed'
-#       修复：strip 掉虚构段，让 param_name 变回 "experts.w2_"。
+#   Patch 2  QuaRot 在线逆旋转
+#     在 trunk / MTP 的最终 RMSNorm 上挂 forward pre-hook，
+#     对输入做 Hadamard 逆旋转。
 #
-#   Patch 3  QuaRot 在线逆旋转
-#     → 在 Glm5NextModel 和 Glm5NextMultiTokenPredictorLayer 的最终 RMSNorm
-#       上挂 forward pre-hook，对输入做 Hadamard 逆旋转。
-#       hook 方式优于替换 __call__：不动模块树、不动 state_dict key，
-#       旋转模块挂载名严格对齐 config / checkpoint。
+# 另带一条**只读**诊断日志：RoutedExperts 构造完成后打印实际选中的
+# quant_method 类名和是否存在 *_weight_packed 参数。它不改任何行为，
+# 只用于确认 Patch 1 是否生效。
 #
-# 运行时依赖：Patch 1 必须先于 Patch 2 生效——只有 W4A8 method 注册了扁平
-# 参数名，Patch 2 strip 后的 param_name 才能对上真实 key。Patch 3 与此无关，
-# 在前向阶段才介入。
+# 说明：不再 patch 专家参数名映射。上游 build_expert_params_mapping 生成的
+#     experts.routed_experts.w2_ 前缀与 MoERunner 的真实子模块层级一致
+#     （MoERunner.__init__ 里 self.routed_experts = routed_experts），
+#     剥掉这一段反而会制造不存在的 key。
 #
 # 上游移除条件：
-#   1. 上游 compressed-tensors config 优先选择 FusedMoE 目标组；
-#   2. 上游把 RoutedExperts 的 param namespace 拍平到与 quant method 一致；
-#   3. 上游 GLM 原生支持 online rotation。
+#   1. 上游 compressed-tensors 优先选择 FusedMoE 目标组；
+#   2. 上游 GLM 原生支持 online rotation。
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
@@ -58,263 +56,184 @@ logger = init_logger(__name__)
 # =========================================================================
 # Patch 1 — compressed_tensors MoE scheme 分组路由
 # =========================================================================
-#
-# Upstream `CompressedTensorsConfig._add_fused_moe_to_target_scheme_map`
-# unconditionally aliases `RoutedExperts` to the `Linear` group:
-#
-#     self.target_scheme_map["RoutedExperts"] = self.target_scheme_map["Linear"]
-#
-# GLM-5.3-Flash checkpoints describe the experts as a *separate* group with
-# its own bit-widths, e.g.
-#
-#     group_0  targets=['Linear']    weights=8  input=8
-#     group_1  targets=['FusedMoE']  weights=4  input=8
-#
-# Alias to `Linear` therefore resolves the experts to the 8-bit scheme
-# (W8A8 int8), which is both wrong and expensive: the checkpoint stores 4-bit
-# nibble-packed int32 tensors (`weight_packed`), so the 8-bit method allocates
-# per-expert int8 weights at twice the size and the rank OOMs during load.
-#
-# Keep the upstream fallback intact but prefer `FusedMoE` whenever that
-# target is present, so `RoutedExperts` inherits the 4-bit scheme.
-
-@patch(
-    "vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors",
-    "CompressedTensorsConfig._add_fused_moe_to_target_scheme_map",
-)
-def _add_fused_moe_to_target_scheme_map(self) -> None:
-    """Bind `RoutedExperts` to the best matching group's scheme.
-
-    Order of preference: a dedicated `FusedMoE` group (its own bit-widths),
-    then the upstream fallback to the `Linear` group.
-    """
-    if (
-        "Linear" not in self.target_scheme_map
-        or "RoutedExperts" in self.target_scheme_map
-    ):
-        return
-
-    if "FusedMoE" in self.target_scheme_map:
-        self.target_scheme_map["RoutedExperts"] = self.target_scheme_map["FusedMoE"]
-        logger.info(
-            "glm5next_flash_patches: RoutedExperts → FusedMoE group (%s)",
-            self.target_scheme_map["FusedMoE"],
-        )
-        return
-
-    self.target_scheme_map["RoutedExperts"] = self.target_scheme_map["Linear"]
-    logger.info(
-        "glm5next_flash_patches: RoutedExperts → Linear group (upstream fallback)"
-    )
 
 
-# =========================================================================
-# Patch 2 — RoutedExperts params mapping 扁平命名修复
-# =========================================================================
-#
-# Upstream `RoutedExperts.build_expert_params_mapping` builds tuple entries
-# like
-#
-#     param_name = "experts.routed_experts.w2_"       # spurious submodule
-#     weight_name = "experts.8.down_proj."            # matches ckpt path
-#
-# The `.routed_experts.` segment in `param_name` is an _assumed_ extra
-# submodule level that does not exist in the actual nn.Module tree.
-# RoutedExperts is always registered under the parent name `"experts"` (see
-# Llama4MoE.self.experts, FusedMoEFactory), so every compressed-tensors MoE
-# method registers flat parameters directly on that module — e.g.
-# `layer.register_parameter("w2_weight_packed", ...)`.  Inside the top-level
-# `model.named_parameters()` dictionary those become
-# `<layer>.experts.w2_weight_packed`, never
-# `<layer>.experts.routed_experts.w2_weight_packed`.
-#
-# Consequently the `name.replace(weight_name, param_name)` call that every
-# model's load_weights performs resolves to a non-existent parameter key.
-# Stripping the bogus `.routed_experts.` collapses param_name to
-# `"experts.w2_"` — then the underscore tail combines with whatever suffix
-# the checkpoint carries (`.weight`, `.weight_packed`, `.weight_scale`, ...)
-# into the exact flat key the quant method registered.
-#
-#    ckpt: "...experts.8.down_proj.weight_packed"
-#      .replace("experts.8.down_proj.", "experts.w2_")
-#    → "...experts.w2_weight_packed"   ✓ matches params_dict
-#
-# It also makes `make_expert_params_mapping` tolerate `model=None`.  The
-# legacy entry point's `model.named_parameters()` scan was only ever used to
-# detect a `.base_layer.` LoRA prefix — callers without a real model can pass
-# None safely; the LoRA prefix is rare in compressed-tensors checkpoints.
-
-
-def _strip_routed_experts_segment(param_name: str) -> str:
-    """Remove only the ``.routed_experts`` submodule from upstream param_name.
-
-    RoutedExperts is always registered under the parent name ``experts``, so
-    the ``.routed_experts`` segment is spurious — but a possible LoRA
-    ``.base_layer.`` segment that follows it is legitimate and must be kept.
-
-        "experts.routed_experts.w13_"                 → "experts.w13_"
-        "experts.routed_experts.w2_"                  → "experts.w2_"
-        "experts.routed_experts.base_layer.w2_"       → "experts.base_layer.w2_"
-        "experts.w2_"                                 → "experts.w2_"   (no-op)
-        "other.w2_"                                   → "other.w2_"     (no-op)
-    """
-    marker = "experts.routed_experts."
-    if param_name.startswith(marker):
-        return "experts." + param_name[len(marker):]
-    return param_name
-
-
-def _rewrite_tuple(
-    param_name: str, weight_name: str, expert_id: int, shard_id: str
-) -> tuple[str, str, int, str]:
-    """Strip the spurious routed_experts nesting, leave everything else intact."""
+def _bits(scheme: Any) -> str:
+    if not isinstance(scheme, Mapping):
+        return "?"
+    weight_quant = scheme.get("weights")
+    act_quant = scheme.get("input_activations")
     return (
-        _strip_routed_experts_segment(param_name),
-        weight_name,
-        expert_id,
-        shard_id,
+        f"W{getattr(weight_quant, 'num_bits', '?')}"
+        f"A{getattr(act_quant, 'num_bits', '?')}"
     )
 
 
-# ---- patch the three entry points that produce expert-params tuples ----
+def _force_routed_experts_scheme(quant_config: Any) -> None:
+    """把 RoutedExperts 绑定到 FusedMoE 组，必要时回退到 Linear 组。
 
-
-def _patched_make_expert_params_mapping(
-    model,
-    ckpt_gate_proj_name: str,
-    ckpt_down_proj_name: str,
-    ckpt_up_proj_name: str,
-    num_experts: int,
-    num_redundant_experts: int = 0,
-    routed_experts_prefix: str = "routed_experts",
-):
-    """Return flat-nesting tuples and tolerate ``model=None``."""
-    lora_prefix = ""
-    if model is not None:
-        try:
-            has_base_layer = any(
-                ".base_layer." in n for n, _ in model.named_parameters()
-            )
-            lora_prefix = "base_layer." if has_base_layer else ""
-        except Exception as exc:
-            logger.warning(
-                "glm5next_flash_patches: model.named_parameters() "
-                "failed (%s); defaulting lora_prefix to ''",
-                exc,
-            )
-
-    from vllm.model_executor.layers.fused_moe.routed_experts import (
-        RoutedExperts,
-    )
-
-    raw = RoutedExperts.build_expert_params_mapping(
-        ckpt_gate_proj_name,
-        ckpt_down_proj_name,
-        ckpt_up_proj_name,
-        num_experts,
-        num_redundant_experts,
-        routed_experts_prefix,
-        lora_prefix,
-    )
-    return [_rewrite_tuple(*t) for t in raw]
-
-
-def _patched_get_expert_mapping(
-    self,
-    ckpt_gate_proj_name=None,
-    ckpt_down_proj_name=None,
-    ckpt_up_proj_name=None,
-    include_fused: bool = False,
-):
-    """Instance wrapper — same flat rewrite applied to RoutedExperts.load_weights."""
-    originals = getattr(_patched_get_expert_mapping, PATCH_MARKER, {})
-    original = originals.get(
-        "vllm.model_executor.layers.fused_moe.routed_experts."
-        "RoutedExperts.get_expert_mapping"
-    )
-    if original is None:
-        raise RuntimeError(
-            "glm5next_flash_patches: patch did not record original "
-            "get_expert_mapping"
+    只改这一层的 target -> scheme 映射，不改量化参数本身。
+    """
+    scheme_map = getattr(quant_config, "target_scheme_map", None)
+    if not isinstance(scheme_map, dict):
+        logger.warning(
+            "glm5next_flash_patches: CompressedTensorsConfig has no "
+            "target_scheme_map; MoE scheme routing NOT applied."
         )
-    raw = original(
-        self,
-        ckpt_gate_proj_name=ckpt_gate_proj_name,
-        ckpt_down_proj_name=ckpt_down_proj_name,
-        ckpt_up_proj_name=ckpt_up_proj_name,
-        include_fused=include_fused,
-    )
-    return [_rewrite_tuple(*t) for t in raw]
+        return
 
+    if "FusedMoE" in scheme_map:
+        scheme_map["RoutedExperts"] = scheme_map["FusedMoE"]
+        logger.info(
+            "glm5next_flash_patches: RoutedExperts -> FusedMoE group (%s); "
+            "map=%s",
+            _bits(scheme_map["FusedMoE"]),
+            {key: _bits(value) for key, value in scheme_map.items()},
+        )
+        return
 
-def _patched_fused_moe_make_expert_params_mapping(
-    model,
-    ckpt_gate_proj_name: str,
-    ckpt_down_proj_name: str,
-    ckpt_up_proj_name: str,
-    num_experts: int,
-    num_redundant_experts: int = 0,
-    routed_experts_prefix: str = "routed_experts",
-):
-    """Thin module-level wrapper — delegates to the patched staticmethod."""
-    from vllm.model_executor.layers.fused_moe.routed_experts import (
-        RoutedExperts,
-    )
-
-    return RoutedExperts.make_expert_params_mapping(
-        model,
-        ckpt_gate_proj_name,
-        ckpt_down_proj_name,
-        ckpt_up_proj_name,
-        num_experts,
-        num_redundant_experts,
-        routed_experts_prefix,
+    # 没有 FusedMoE 组时保持上游语义：仅当还没有显式 RoutedExperts 时才别名到 Linear。
+    if "RoutedExperts" in scheme_map:
+        source = "existing RoutedExperts entry"
+    elif "Linear" in scheme_map:
+        scheme_map["RoutedExperts"] = scheme_map["Linear"]
+        source = "Linear group"
+    else:
+        source = "none"
+    logger.warning(
+        "glm5next_flash_patches: no FusedMoE group in target_scheme_map; "
+        "MoE scheme source=%s; map=%s",
+        source,
+        {key: _bits(value) for key, value in scheme_map.items()},
     )
 
 
-patch(
-    "vllm.model_executor.layers.fused_moe.routed_experts",
-    "RoutedExperts.make_expert_params_mapping",
-)(_patched_make_expert_params_mapping)
+def _compressed_tensors_init(self: Any, *args: Any, **kwargs: Any) -> None:
+    """CompressedTensorsConfig.__init__ 包装：构造完立刻修正 target_scheme_map。"""
+    _original(_compressed_tensors_init, _CT_INIT_TARGET)(self, *args, **kwargs)
+    _force_routed_experts_scheme(self)
 
-patch(
-    "vllm.model_executor.layers.fused_moe.routed_experts",
-    "RoutedExperts.get_expert_mapping",
-)(_patched_get_expert_mapping)
 
-patch(
-    "vllm.model_executor.layers.fused_moe.layer",
-    "fused_moe_make_expert_params_mapping",
-)(_patched_fused_moe_make_expert_params_mapping)
+_CT_INIT_TARGET = (
+    "vllm.model_executor.layers.quantization.compressed_tensors."
+    "compressed_tensors.CompressedTensorsConfig.__init__"
+)
+
+
+def _install_scheme_routing() -> None:
+    try:
+        patch(
+            "vllm.model_executor.layers.quantization."
+            "compressed_tensors.compressed_tensors",
+            "CompressedTensorsConfig.__init__",
+        )(_compressed_tensors_init)
+    except (ImportError, AttributeError, TypeError, RuntimeError) as exc:
+        logger.warning(
+            "glm5next_flash_patches: scheme routing target %s not patched "
+            "(%s: %s)",
+            _CT_INIT_TARGET,
+            type(exc).__name__,
+            exc,
+        )
+        return
+    logger.info("glm5next_flash_patches: scheme routing patched at %s", _CT_INIT_TARGET)
+
+
+_install_scheme_routing()
 
 
 # =========================================================================
-# Patch 3 — QuaRot 在线逆旋转
+# 诊断 —— RoutedExperts 实际使用的 quant_method
+# =========================================================================
+
+_REPORTED_METHODS: set[str] = set()
+
+
+def _routed_experts_init(self: Any, *args: Any, **kwargs: Any) -> None:
+    """RoutedExperts.__init__ 包装：只打印选中的量化方法，不改行为。"""
+    _original(_routed_experts_init, _ROUTED_EXPERTS_INIT_TARGET)(
+        self, *args, **kwargs
+    )
+
+    quant_method = getattr(self, "quant_method", None)
+    method_name = type(quant_method).__name__ if quant_method is not None else "None"
+    if method_name in _REPORTED_METHODS:
+        return
+    _REPORTED_METHODS.add(method_name)
+
+    names = [name for name, _ in self.named_parameters()]
+    packed = [name for name in names if name.endswith("_weight_packed")]
+    logger.info(
+        "glm5next_flash_patches: MoE quant_method=%s (layer=%s), params=%d, "
+        "packed=%d%s",
+        method_name,
+        getattr(self, "layer_name", "?"),
+        len(names),
+        len(packed),
+        f" (e.g. {packed[:2]})" if packed else "",
+    )
+    if not packed:
+        logger.error(
+            "glm5next_flash_patches: no *_weight_packed parameter registered; "
+            "the checkpoint (INT4 packed) will NOT load. All MoE params: %s",
+            names[:12],
+        )
+
+
+_ROUTED_EXPERTS_INIT_TARGET = (
+    "vllm.model_executor.layers.fused_moe.routed_experts.RoutedExperts.__init__"
+)
+
+
+def _install_moe_diagnostic() -> None:
+    """安装诊断补丁；目标模块缺失时告警而不是中断插件加载。"""
+    try:
+        patch(
+            "vllm.model_executor.layers.fused_moe.routed_experts",
+            "RoutedExperts.__init__",
+        )(_routed_experts_init)
+    except (ImportError, AttributeError, TypeError, RuntimeError) as exc:
+        logger.warning(
+            "glm5next_flash_patches: MoE diagnostic target %s not patched "
+            "(%s: %s)",
+            _ROUTED_EXPERTS_INIT_TARGET,
+            type(exc).__name__,
+            exc,
+        )
+        return
+    logger.info(
+        "glm5next_flash_patches: MoE diagnostic patched at %s",
+        _ROUTED_EXPERTS_INIT_TARGET,
+    )
+
+
+_install_moe_diagnostic()
+
+
+# =========================================================================
+# Patch 2 — QuaRot 在线逆旋转
 # =========================================================================
 #
-# Two insertion points:
+# 两个插入点：
 #
-#   1. main trunk — `Glm5NextModel`.  Its forward ends with the residual
-#      stream already summed and the final norm takes a single argument:
+#   1. 主干 —— `Glm5NextModel`。forward 末尾 residual 已经加完，最终 norm
+#      只接收一个参数：
 #          hidden_states = self.norm(hidden_states)
-#      → rotate the norm's input.
+#      → 旋转 norm 的输入。
 #
-#   2. MTP draft — `Glm5NextMultiTokenPredictorLayer`.  The draft bypasses
-#      `SharedHead.forward` and drives the fused norm directly:
+#   2. MTP draft —— `Glm5NextMultiTokenPredictorLayer`。draft 不走
+#      `SharedHead.forward`，而是直接驱动融合 norm：
 #          hidden_states, _ = self.shared_head.norm(
 #              hidden_states, residual=residual)
-#      i.e. the residual add happens *inside* RMSNorm.  The rotation is
-#      linear, so rotating `hidden_states` and `residual` separately is
-#      equivalent to rotating their sum, while the fused kernel keeps its
-#      own dtype handling and return values exactly as upstream.
+#      即 residual 加法发生在 RMSNorm 内部。旋转是线性的，分别旋转
+#      `hidden_states` 和 `residual` 等价于旋转它们的和，同时保持融合
+#      kernel 的 dtype 处理和返回值与上游完全一致。
 #
-# Mechanism: a forward *pre-hook* on the final RMSNorm.  Replacing the
-# callable instead would trip `nn.Module.__setattr__`, which refuses to bind
-# a non-Module onto a name already present in `self._modules`; the pre-hook
-# leaves both the module tree and the state_dict keys untouched.
+# 机制：在最终 RMSNorm 上挂 forward *pre-hook*。直接替换 callable 会触发
+#     `nn.Module.__setattr__` 的拒绝（同名已在 `self._modules` 中），
+#     而 pre-hook 不动模块树、不动 state_dict key。
 #
-# The rotation module is mounted under the exact name the config and the
-# checkpoint use, so `sign` / `hk` load as ordinary weights:
+# 旋转模块按 config / checkpoint 里的真实名字挂载：
 #     trunk : <prefix>.prenorm_hadamard_rotation
 #     MTP   : <prefix>.shared_head.prenorm_hadamard_rotation
 
@@ -326,7 +245,7 @@ _HOOK_FLAG = "_glm5next_rotation_hooked"
 
 
 def _rotation_modules(config: Any) -> Mapping[str, Any]:
-    """Return `config.online_rotation.modules`, or an empty mapping."""
+    """返回 `config.online_rotation.modules`，没有则返回空映射。"""
     rotation_config = getattr(config, "online_rotation", None)
     if not isinstance(rotation_config, Mapping):
         return {}
@@ -337,22 +256,19 @@ def _rotation_modules(config: Any) -> Mapping[str, Any]:
 def _resolve_key(
     modules: Mapping[str, Any], prefix: str, leaf_suffix: str
 ) -> tuple[str | None, Any]:
-    """Return `(config_key, spec)` for the rotation mounted at `prefix`.
+    """返回挂在 `prefix` 下的旋转配置 `(config_key, spec)`。
 
-    The runtime `prefix` and the exporter-facing key can disagree about both
-    the *order* and the *depth* of the path segments.  Observed on
-    GLM-5.3-Flash: the trunk is instantiated with prefix `language_model.model`
-    while the config carries `model.language_model.prenorm_hadamard_rotation`
-    — the same two anchors, swapped.  An MTP key additionally repeats the layer
-    path plus a `shared_head` level that the runtime prefix does not carry.
+    运行时 `prefix` 与导出配置的 key 可能同时存在**顺序**和**层级深度**的
+    差异。GLM-5.3-Flash 上观测到：trunk 实例化时的 prefix 是
+    `language_model.model`，而 config 里写的是
+    `model.language_model.prenorm_hadamard_rotation` —— 两个锚点顺序相反。
+    MTP 的 key 还会多出 `shared_head` 这一层。
 
-    The exact lookup is therefore backed by progressively weaker anchors, and
-    only a unique best match is accepted:
-       rank 1 — the key's trailing segments equal the runtime prefix;
-       rank 2 — the key has the same anchor segments, merely reordered;
-       rank 3 — the runtime anchors are a subset of the key's segments (the key
-                carries extra levels such as `shared_head`);
-       rank 4 — the key ends on the same trailing path segment (layer index).
+    因此精确查找后面依次挂更弱的锚点，且只接受唯一最优匹配：
+       rank 1 —— key 的尾部路径段等于运行时 prefix；
+       rank 2 —— key 的锚点段与运行时相同，只是顺序不同；
+       rank 3 —— 运行时锚点是 key 路径段的子集（key 多出 `shared_head` 等层）；
+       rank 4 —— key 与运行时以相同的末段（层号）结尾。
     """
     exact = f"{prefix}.{leaf_suffix}" if prefix else leaf_suffix
     if exact in modules:
@@ -386,7 +302,7 @@ def _resolve_key(
 def _mount_rotation(
     configs: list[Any], prefix: str, leaf_suffix: str
 ) -> nn.Module | None:
-    """Build the rotation for one insertion point, or `None` if not configured."""
+    """为单个插入点构造旋转模块；未配置则返回 `None`。"""
     available: dict[str, Any] = {}
     for config in configs:
         modules = _rotation_modules(config)
@@ -417,13 +333,12 @@ def _mount_rotation(
 
 
 def _norm_input_pre_hook(rotation: nn.Module) -> Callable:
-    """Rotate every tensor the final RMSNorm consumes.
+    """旋转最终 RMSNorm 消费的每个张量。
 
-    Upstream feeds these norms either `hidden_states` alone (trunk, sum already
-    done) or `hidden_states` plus a `residual` the kernel adds internally (MTP).
-    Both are linear inputs of the same normalization, so rotating each tensor
-    separately equals rotating their sum — and this keeps dtype promotion and
-    return values identical to upstream.
+    上游给这些 norm 的输入要么是 `hidden_states`（主干，residual 已加完），
+    要么是 `hidden_states` + `residual`（MTP，kernel 内部相加）。
+    两者都是同一次归一化的线性输入，所以分别旋转与旋转它们的和等价，
+    同时完全保持上游的 dtype 提升与返回值。
     """
 
     def hook(module: nn.Module, args: tuple, kwargs: dict):
@@ -451,18 +366,17 @@ def _install_pre_hook(norm: Any, rotation: nn.Module) -> None:
 
 
 def _final_norm(owner: Any) -> Any:
-    """Return the final RMSNorm of `owner`, or `None` when it has none."""
+    """返回 `owner` 的最终 RMSNorm，没有则返回 `None`。"""
     norm = getattr(owner, "norm", None)
     return norm if isinstance(norm, RMSNorm) else None
 
 
 def _candidate_configs(vllm_config: Any) -> list[Any]:
-    """Collect the HF configs that may carry `online_rotation`.
+    """收集可能携带 `online_rotation` 的 HF config。
 
-    The MTP draft reads the rotation from its own (draft) config; the trunk
-    reads it from the target model's config.  Both `hf_config` and
-    `hf_text_config` are probed because a multimodal config may put the
-    rotation under `text_config` only.
+    MTP draft 从自己的 draft config 读旋转；主干从 target model 的 config 读。
+    这里同时探测 `hf_config` 与 `hf_text_config`，因为多模态 config 可能
+    把旋转只放在 `text_config` 下。
     """
     configs: list[Any] = []
     draft_config = getattr(
@@ -484,7 +398,7 @@ def _candidate_configs(vllm_config: Any) -> list[Any]:
 
 
 def _original(patched: Callable, full_target: str) -> Callable:
-    """Read back the method `patch()` displaced when it installed `patched`."""
+    """读回 `patch()` 安装 `patched` 时替换掉的原始实现。"""
     originals = getattr(patched, PATCH_MARKER, None)
     if not isinstance(originals, dict) or full_target not in originals:
         raise RuntimeError(
@@ -494,7 +408,7 @@ def _original(patched: Callable, full_target: str) -> Callable:
 
 
 def _positional_prefix(args: tuple, kwargs: dict) -> str:
-    """Recover `prefix` from either calling convention."""
+    """兼容位置参数 / 关键字参数两种调用方式，取出 `prefix`。"""
     if "prefix" in kwargs:
         return kwargs["prefix"]
     return args[1] if len(args) > 1 else ""
@@ -505,7 +419,7 @@ def _positional_vllm_config(args: tuple, kwargs: dict) -> Any:
 
 
 def _make_trunk_init(full_target: str) -> Callable:
-    """Wrap `Glm5NextModel.__init__` and hook the trunk's final norm."""
+    """包装 `Glm5NextModel.__init__`，给主干最终 norm 挂 hook。"""
 
     def _glm5next_model_init(self: nn.Module, *args, **kwargs):
         _original(_glm5next_model_init, full_target)(self, *args, **kwargs)
@@ -534,11 +448,10 @@ def _make_trunk_init(full_target: str) -> Callable:
 
 
 def _make_mtp_init(full_target: str) -> Callable:
-    """Wrap `Glm5NextMultiTokenPredictorLayer.__init__` and hook the MTP norm.
+    """包装 `Glm5NextMultiTokenPredictorLayer.__init__`，给 MTP norm 挂 hook。
 
-    The rotation sits on `shared_head`, matching the config and checkpoint key
-    `...<prefix>.shared_head.prenorm_hadamard_rotation`, so it is mounted there
-    rather than on the MTP layer.
+    旋转挂在 `shared_head` 上，与 config / checkpoint 的 key
+    `...<prefix>.shared_head.prenorm_hadamard_rotation` 对齐。
     """
 
     def _glm5next_mtp_init(self: nn.Module, *args, **kwargs):
@@ -587,7 +500,7 @@ _TARGETS = [
 
 
 def _install(mod_path: str, attribute: str, factory: Callable, label: str) -> None:
-    """Install one rotation patch, reporting a missing target instead of aborting import."""
+    """安装单个旋转补丁；目标缺失时打印告警而不是中断 import。"""
     full_target = f"{mod_path}.{attribute}"
     try:
         patch(mod_path, attribute)(factory(full_target))
@@ -604,4 +517,4 @@ for _mod_path, _attribute, _factory, _label in _TARGETS:
     _install(_mod_path, _attribute, _factory, _label)
 
 
-logger.info("glm5next_flash_patches: all 3 patches installed")
+logger.info("glm5next_flash_patches: scheme routing + rotation patches installed")

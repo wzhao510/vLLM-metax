@@ -22,16 +22,16 @@ from . import joyai_support  # noqa: F401
 from . import utils  # noqa: F401
 
 from . import dbo  # noqa: F401
-from . import glm5next_flash_patches  # noqa: F401 — GLM-5.3 Flash 成套适配
-    # 含三块，互不依赖但成套出现：
+from . import glm5next_flash_patches  # noqa: F401 — GLM-5.3 Flash 适配
+    # 含两块，互不依赖但成套出现：
     #   1. compressed_tensors MoE scheme 分组路由 → RoutedExperts 绑定 FusedMoE/W4A8
-    #   2. RoutedExperts params mapping 扁平命名修复 → strip 虚构 .routed_experts
-    #   3. QuaRot 在线逆旋转 pre-hook → 注入最终 RMSNorm
+    #      （并在 RoutedExperts 构造时打印实际选中的 quant_method）
+    #   2. QuaRot 在线逆旋转 pre-hook → 注入最终 RMSNorm
 # -----------------------------------------------------------------------------
 # 旧的拆分版 patch 文件保留作为备份，待新文件验证通过后删除：
 #   from . import glm5next_rotation           # ← 已并入 glm5next_flash_patches
 #   from . import compressed_tensors_moe_scheme   # ← 已并入
-#   from . import glm5next_moe_params_mapping # ← 已并入
+#   from . import glm5next_moe_params_mapping # ← 已废弃（.routed_experts 是真实层级）
 # -----------------------------------------------------------------------------
 
 # 诊断开关（排 KeyError 时临时打开，正常运行注释掉）：
