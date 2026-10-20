@@ -339,32 +339,42 @@ def _resolve_key(
 ) -> tuple[str | None, Any]:
     """Return `(config_key, spec)` for the rotation mounted at `prefix`.
 
-    The runtime `prefix` and the exporter-facing key can disagree about the
-    path in between, because a multimodal config anchors the language model
-    one level deeper than vLLM's draft module does.  Concretely, for layer 45
-    this patch may see prefix `model.layers.45` while the config carries
-    `model.language_model.layers.45.shared_head.prenorm_hadamard_rotation`.
+    The runtime `prefix` and the exporter-facing key can disagree about both
+    the *order* and the *depth* of the path segments.  Observed on
+    GLM-5.3-Flash: the trunk is instantiated with prefix `language_model.model`
+    while the config carries `model.language_model.prenorm_hadamard_rotation`
+    — the same two anchors, swapped.  An MTP key additionally repeats the layer
+    path plus a `shared_head` level that the runtime prefix does not carry.
 
-    So the exact lookup is backed by two progressively weaker anchors, and
+    The exact lookup is therefore backed by progressively weaker anchors, and
     only a unique best match is accepted:
        rank 1 — the key's trailing segments equal the runtime prefix;
-       rank 2 — the key ends on the same trailing path segment (the layer index),
-                which bridges the extra `language_model` level.
+       rank 2 — the key has the same anchor segments, merely reordered;
+       rank 3 — the runtime anchors are a subset of the key's segments (the key
+                carries extra levels such as `shared_head`);
+       rank 4 — the key ends on the same trailing path segment (layer index).
     """
     exact = f"{prefix}.{leaf_suffix}" if prefix else leaf_suffix
     if exact in modules:
         return exact, modules[exact]
 
     head = prefix.split(".") if prefix else []
+    head_set = set(head)
     candidates: list[tuple[int, str]] = []
     for key in modules:
         if not key.endswith("." + leaf_suffix):
             continue
         segments = key[: -(len(leaf_suffix) + 1)].split(".")
-        if head and segments[-len(head):] == head:
+        if not head or not segments:
+            continue
+        if segments[-len(head):] == head:
             candidates.append((1, key))
-        elif head and segments and segments[-1] == head[-1]:
+        elif len(segments) == len(head) and set(segments) == head_set:
             candidates.append((2, key))
+        elif head_set.issubset(set(segments)):
+            candidates.append((3, key))
+        elif segments[-1] == head[-1]:
+            candidates.append((4, key))
 
     best_rank = min((rank for rank, _ in candidates), default=None)
     winners = [key for rank, key in candidates if rank == best_rank]
