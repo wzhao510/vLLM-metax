@@ -35,4 +35,4 @@ from . import glm5next_flash_patches  # noqa: F401 — GLM-5.3 Flash 适配
 # -----------------------------------------------------------------------------
 
 # 诊断开关（排 KeyError 时临时打开，正常运行注释掉）：
-# from . import glm5next_moe_debug  # noqa: F401 — dump MoE param names on KeyError
+# from . import glm5next_moe_debug  # noqa: F401 — dump MoE/attention param names on KeyError
