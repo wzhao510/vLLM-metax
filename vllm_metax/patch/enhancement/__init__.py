@@ -23,6 +23,7 @@ from . import MRV2  # noqa: F401
 from . import utils  # noqa: F401
 from . import dbo  # noqa: F401
 from . import indexer_kv_dtype  # noqa: F401
+from . import pp_kv_cache  # noqa: F401
 
 # Keep runner/sampler imports after allocator, communication and kernel setup.
 from . import performance  # noqa: F401

@@ -1,6 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 # 2026 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. All Rights Reserved.
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+#
+# -----------------------------------------------------------------------------
+# Note: Validate the Qwen4Exp P/D transfer configuration before loading
+#     checkpoint weights. Restrict recurrent QSA/GDN/PLE state transfer to
+#     the validated native NIXL, GPU-cache, DS-layout and PP=1 combination;
+#     reject unsupported connector or speculative configurations early.
+#
+# Affected versions: vLLM 0.29.0 with the vllm-metax 0.29.0 Qwen4Exp model
+#     implementation and optional native NixlConnector P/D transfer.
+#
+# Remove at: Drop the local constructor validation hook once the maintained
+#     Qwen4Exp model enforces the same transfer restrictions before loading,
+#     with both supported and rejected configurations covered by tests.
+# -----------------------------------------------------------------------------
 """Inference-only Qwen4Exp model."""
 
 from collections.abc import Iterable
@@ -418,6 +432,9 @@ class Qwen4ExpModel(nn.Module):
 
     def __init__(self, *, vllm_config: VllmConfig, prefix: str = "") -> None:
         super().__init__()
+        from .pd import validate_pd_config
+
+        validate_pd_config(vllm_config)
         config: Qwen4ExpTextConfig = vllm_config.model_config.hf_text_config
         self.config = config
         self.num_redundant_experts = (

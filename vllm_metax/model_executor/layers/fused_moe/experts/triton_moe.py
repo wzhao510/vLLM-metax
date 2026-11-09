@@ -393,7 +393,9 @@ class TritonExperts(LoRAExpertsMixin, mk.FusedMoEExpertsModular):
             )
 
         # Ensure correctness when SPLIT_K>1 (atomic_add path).
-        if staged_configs[0].get("SPLIT_K", 1) > 1:
+        if staged_configs[0].get("SPLIT_K", 1) > 1 or (
+            expert_map is not None and self.quant_config.use_int4_w4a8
+        ):
             intermediate_cache1.zero_()
 
         sorted_token_ids, expert_ids, num_tokens_post_padded = (
@@ -411,6 +413,8 @@ class TritonExperts(LoRAExpertsMixin, mk.FusedMoEExpertsModular):
                 use_int8_w8a8=self.quant_config.use_int8_w8a8,
                 use_int4_w4a8=self.quant_config.use_int4_w4a8,
                 block_shape=self.block_shape,
+                # W4A8 MCTLASS has no invalid-expert filter; omit remote experts.
+                ignore_invalid_experts=self.quant_config.use_int4_w4a8,
             )
         )
 
@@ -619,6 +623,8 @@ class TritonExperts(LoRAExpertsMixin, mk.FusedMoEExpertsModular):
                     use_int8_w8a8=self.quant_config.use_int8_w8a8,
                     use_int4_w4a8=self.quant_config.use_int4_w4a8,
                     block_shape=self.block_shape,
+                    # W4A8 MCTLASS has no invalid-expert filter; omit remote experts.
+                    ignore_invalid_experts=self.quant_config.use_int4_w4a8,
                 )
             )
 

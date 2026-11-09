@@ -1,6 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 # 2026 - Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. All Rights Reserved.
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+#
+# -----------------------------------------------------------------------------
+# Note: Advertise QSA KV-connector support only for the validated native
+#     NixlConnector configuration. A blanket support flag would also admit
+#     connectors that do not transfer QSA compression and recurrent state.
+#
+# Affected versions: vLLM 0.29.0 with the vllm-metax 0.29.0 Qwen4Exp QSA
+#     backend and hybrid KV-cache management.
+#
+# Remove at: Drop this local capability check when the maintained QSA backend
+#     exposes equivalent connector-specific validation and complete recurrent
+#     cache transfer passes the P/D and sequential-MTP regressions.
+# -----------------------------------------------------------------------------
 """MetaX QSA owner with Triton kernels."""
 
 from __future__ import annotations
@@ -227,7 +240,16 @@ class Qwen4ExpQSAFlashAttentionBackend(MacaFlashAttentionBackend):
 
     @classmethod
     def supports_kv_connector(cls) -> bool:
-        return False
+        # NIXL transfers complete requests, including QSA circular scratch,
+        # GDN recurrence and PLE history. Layerwise connectors do not.
+        from vllm.config import get_current_vllm_config
+        from .pd import supports_nixl_transfer
+
+        try:
+            config = get_current_vllm_config()
+        except (AssertionError, RuntimeError):
+            return False
+        return supports_nixl_transfer(config)
 
 
 class Qwen4ExpQSAFlashAttentionImpl(FlashAttentionImpl):

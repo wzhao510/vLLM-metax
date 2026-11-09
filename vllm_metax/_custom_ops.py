@@ -84,26 +84,18 @@ def gptq_gemm(
     b_q_weight: torch.Tensor,
     b_gptq_qzeros: torch.Tensor,
     b_gptq_scales: torch.Tensor,
-    b_g_idx: torch.Tensor,
     use_exllama: bool,
+    use_v2_format: bool,
     bit: int,
-    group_size: int,
-    perm_space: torch.Tensor,
-    temp_space: torch.Tensor,
-    dtype_bf16: bool,
 ) -> torch.Tensor:
     return torch.ops._C.gptq_gemm(
         a,
         b_q_weight,
         b_gptq_qzeros,
         b_gptq_scales,
-        b_g_idx,
         use_exllama,
+        use_v2_format,
         bit,
-        group_size,
-        perm_space,
-        temp_space,
-        dtype_bf16,
     )
 
 
@@ -114,13 +106,9 @@ if hasattr(torch.ops._C, "gptq_gemm"):
         b_q_weight: torch.Tensor,
         b_gptq_qzeros: torch.Tensor,
         b_gptq_scales: torch.Tensor,
-        b_g_idx: torch.Tensor,
         use_exllama: bool,
+        use_v2_format: bool,
         bit: int,
-        group_size: int,
-        perm_space: torch.Tensor,
-        temp_space: torch.Tensor,
-        dtype_bf16: bool,
     ) -> torch.Tensor:
         return torch.empty(
             (a.size(0), b_q_weight.size(1)), dtype=a.dtype, device=a.device

@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import torch
 
+from vllm.utils.math_utils import cdiv
 from vllm.utils.torch_utils import direct_register_custom_op
 
 
@@ -27,7 +28,7 @@ def _hc_prenorm_gemm_outputs(
     hc_mult: int,
     use_tilelang_fallback: bool = True,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    from vllm_metax.model_executor.kernels.mhc.warmup import (
+    from vllm_metax.model_executor.kernels.mhc.tilelang_kernels import (
         compute_mhc_pre_num_splits,
     )
     from vllm_metax.utils.deep_gemm import (
@@ -113,11 +114,11 @@ def mhc_pre_delayed_tilelang(
     """
     from vllm_metax.model_executor.kernels.mhc.tilelang_kernels import (
         _HC_PRENORM_GEMM_TILELANG_KERNEL,
+        compute_mhc_pre_num_splits,
         mhc_pre_big_fuse_tilelang,
     )
     from vllm_metax.model_executor.kernels.mhc.warmup import (
         MHC_PRE_NORM_KERNEL,
-        compute_mhc_pre_num_splits,
     )
     from vllm_metax.utils.deep_gemm import (
         is_deep_gemm_supported,
@@ -161,7 +162,9 @@ def mhc_pre_delayed_tilelang(
 
     use_deep_gemm = is_deep_gemm_supported()
     n_splits = (
-        compute_mhc_pre_num_splits(input_size, num_tokens) if use_deep_gemm else 1
+        compute_mhc_pre_num_splits(input_size, num_tokens)
+        if use_deep_gemm
+        else 1
     )
     mixes = torch.empty(
         n_splits, num_tokens, mix_size, dtype=torch.float32, device=residual.device
@@ -327,12 +330,12 @@ def mhc_fused_post_pre_delayed_tilelang(
         _HC_PRENORM_GEMM_TILELANG_KERNEL,
         _MHC_FUSED_TILELANG_KERNEL,
         _MHC_POST_TILELANG_KERNEL,
+        compute_mhc_pre_num_splits,
         mhc_fused_post_pre_split_config,
         mhc_pre_big_fuse_tilelang,
     )
     from vllm_metax.model_executor.kernels.mhc.warmup import (
         MHC_PRE_NORM_KERNEL,
-        compute_mhc_pre_num_splits,
     )
     from vllm_metax.utils.deep_gemm import (
         is_deep_gemm_supported,
@@ -405,12 +408,15 @@ def mhc_fused_post_pre_delayed_tilelang(
             residual_cur,
             hc_mult,
             hidden_size,
+            split_h=(comb_res_mix.shape[0]<=32)
         )
         # The delayed epilogue is compiled per bucketed split count, so the
         # projection has to use the same bucket rather than the raw estimate.
         use_deep_gemm = is_deep_gemm_supported()
         n_splits = (
-            compute_mhc_pre_num_splits(input_size, num_tokens) if use_deep_gemm else 1
+            compute_mhc_pre_num_splits(input_size, num_tokens)
+            if use_deep_gemm
+            else 1
         )
         mixes = torch.empty(
             n_splits, num_tokens, mix_size, dtype=torch.float32, device=residual.device
@@ -806,6 +812,7 @@ def mhc_post_tilelang(
         out,
         residual.shape[-2],
         residual.shape[-1],
+        split_h=(comb_res_mix.shape[0]<=32)
     )
     return out
 
@@ -949,6 +956,7 @@ def mhc_fused_post_pre_tilelang(
             residual_cur,
             residual.shape[-2],
             residual.shape[-1],
+            split_h=(comb_res_mix_flat.shape[0]<=32)
         )
         gemm_out_mul, gemm_out_sqrsum = _hc_prenorm_gemm_outputs(
             residual_cur.view(num_tokens, hc_mult * hidden_size),

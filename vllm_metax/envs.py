@@ -24,6 +24,10 @@ if TYPE_CHECKING:
     VLLM_METAX_USE_SGL_FUSED_MOE_GROUPED_TOPK: bool = False
     VLLM_METAX_USE_FLASHINFER_SAMPLER: bool = False
     VLLM_METAX_DISABLE_ASYNC_OUTPUT: bool = True
+    VLLM_METAX_MASKED_INT8_MOE: bool = True
+    VLLM_METAX_SOURCE_PACKED_MOE: bool = False
+    VLLM_METAX_NATIVE_MASKED_ACT: bool = False
+    VLLM_METAX_MOONCAKE_EARLY_READY: bool = True
 
 environment_variables: dict[str, Callable[[], Any]] = {
     # ================== Installation Time Env Vars ==================
@@ -106,6 +110,33 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # if set, use vllm's fused_moe implementation instead of maca's one for debugging and comparison
     "USE_VLLM_TRITON_EXPERT": lambda: bool(
         int(os.getenv("USE_VLLM_TRITON_EXPERT", "0"))
+    ),
+    # Enable masked MoE with per-token INT8 activations for both INT8 and INT4
+    # weights by default. Set to 0 to disable it for both weight formats.
+    "VLLM_METAX_MASKED_INT8_MOE": lambda: bool(
+        int(os.environ.get("VLLM_METAX_MASKED_INT8_MOE", "1"))
+    ),
+    # if set, enable the source-packed INT8 MoE path: fused residual+RMSNorm+
+    # INT8 quant+pack on the source rank, dispatching a packed INT8 carrier
+    # instead of raw bf16 (see source_packed_dispatch.py). Requires
+    # VLLM_METAX_MASKED_INT8_MOE=1. The legacy source
+    # spelling remains an input alias; either old activation input enables it.
+    "VLLM_METAX_SOURCE_PACKED_MOE": lambda: bool(
+        int(os.environ.get("VLLM_METAX_SOURCE_PACKED_MOE", "0"))
+    )
+    or bool(int(os.environ.get("VLLM_METAX_W4A8_SOURCE_PACKED_MOE", "0"))),
+    # if set, use mcoplib's native fused_silu_mul_dq_mask_quant kernel
+    # (via masked_int8_moe.native_activation) instead of the Triton fallback
+    # for the masked INT8 MoE SiLU+quant+pack step
+    "VLLM_METAX_NATIVE_MASKED_ACT": lambda: bool(
+        int(os.environ.get("VLLM_METAX_NATIVE_MASKED_ACT", "0"))
+    ),
+    # if set (on the Mooncake prefill instance), the P scheduler tells the P workers
+    # "KV ready to send" directly over ZMQ instead of waiting for the next batch
+    # Can optimize the chunk prefill latency for P-node once.
+    # (see patch/performance/mooncake_early_ready.py)
+    "VLLM_METAX_MOONCAKE_EARLY_READY": lambda: bool(
+        int(os.environ.get("VLLM_METAX_MOONCAKE_EARLY_READY", "1"))
     ),
 }
 

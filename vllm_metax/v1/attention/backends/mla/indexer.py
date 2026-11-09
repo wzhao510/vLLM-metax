@@ -1057,7 +1057,7 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
         # Align with deepgemm+metax
         num_blocks = get_num_blocks_paged_mqa_logits_metadata(self.num_sms)
         self.scheduler_metadata_buffer = torch.empty(
-            (num_blocks + 1, 2), dtype=torch.int32, device=self.device
+            (max(num_blocks + 1, 4096), 2), dtype=torch.int32, device=self.device
         )
 
         # Each compressed state must live on a single rank, so the DCP
@@ -1708,6 +1708,10 @@ class DeepseekV32IndexerMetadataBuilder(AttentionMetadataBuilder):
                     self.num_sms,
                     indices=decode_indices,
                 )
+                if metadata.shape[0] > self.scheduler_metadata_buffer.shape[0]:
+                    self.scheduler_metadata_buffer = torch.empty(
+                        (metadata.shape[0] + 512, 2), dtype=torch.int32, device=self.device
+                    )
                 schedule_metadata = self.scheduler_metadata_buffer[: metadata.shape[0]]
                 schedule_metadata[:] = metadata
 

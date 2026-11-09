@@ -16,9 +16,6 @@ from vllm.platforms import PlatformEnum, current_platform
 
 import torch
 
-from vllm_metax import _custom_ops as mx_ops
-
-
 def _allocate_gptq_workspaces(
     x_2d: torch.Tensor,
     qweight: torch.Tensor,
@@ -69,31 +66,57 @@ def _apply_gptq_impl(
     reshaped_x = x.reshape(-1, x.shape[-1])
     out_shape = x.shape[:-1] + (qweight.shape[-1],)
 
-    perm_space, temp_space = _allocate_gptq_workspaces(
-        reshaped_x,
-        qweight,
-        weight_bits,
-        group_size,
-        desc_act,
-    )
-
-    output = mx_ops.gptq_gemm(
+    # mcoplib already exposes the vLLM 0.30 GPTQ GEM signature:
+    #   gptq_gemm(a, qweight, qzeros, scales,
+    #             use_exllama, use_v2_format, bit)
+    output = torch.ops._C.gptq_gemm(
         reshaped_x,
         qweight,
         qzeros,
         scales,
-        g_idx,
         use_exllama,
+        False,  # use_v2_format
         weight_bits,
-        group_size,
-        perm_space,
-        temp_space,
-        reshaped_x.dtype == torch.bfloat16,
     )
 
     if bias is not None:
         output.add_(bias)
     return output.reshape(out_shape)
+
+
+def _ensure_gptq_shuffle_compat() -> None:
+    """Adapt vLLM 0.30's two-arg gptq_shuffle to the MetaX three-arg op.
+
+    vLLM 0.30 removed GPTQ group/dynamic activation ordering (upstream PR
+    #54809) and now calls ``gptq_shuffle(q_weight, bit)``. The MetaX extension
+    still exposes the older ``gptq_shuffle(q_weight, q_perm, bit)`` schema, so
+    install a thin shim before the vLLM Exllama weight repack path runs.
+    """
+    import vllm._custom_ops as vllm_ops
+
+    current = getattr(vllm_ops, "gptq_shuffle", None)
+    if getattr(current, "__vllm_metax_gptq_shuffle_compat__", False):
+        return
+
+    def compat(q_weight: torch.Tensor, bit: int) -> None:
+        op = getattr(torch.ops._C, "gptq_shuffle", None)
+        if op is None:
+            current(q_weight, bit)
+            return
+
+        # Fast path: the backend already exposes the vLLM 0.30 two-arg schema.
+        try:
+            op(q_weight, bit)
+            return
+        except (TypeError, RuntimeError):
+            pass
+
+        # MetaX extension path: shim into the older three-arg schema.
+        q_perm = torch.empty((0,), dtype=torch.int32, device=q_weight.device)
+        op(q_weight, q_perm, bit)
+
+    compat.__vllm_metax_gptq_shuffle_compat__ = True
+    vllm_ops.gptq_shuffle = compat
 
 
 class MacaExllamaLinearKernel(vllm_ExllamaLinearKernel):
@@ -103,14 +126,6 @@ class MacaExllamaLinearKernel(vllm_ExllamaLinearKernel):
             return (
                 False,
                 "Exllama is only supported on CUDA and ROCm and Maca",
-            )
-
-        if c.has_g_idx and c.partition_weight_shape[0] != c.full_weight_shape[0]:
-            return (
-                False,
-                "Act reordering currently not supported by Exllama, "
-                "when the input features are partitioned across "
-                "devices",
             )
 
         if c.partition_weight_shape[1] % (32 // c.weight_type.size_bits) != 0:
@@ -153,15 +168,20 @@ class MacaExllamaLinearKernel(vllm_ExllamaLinearKernel):
         return True, None
 
     def process_weights_after_loading(self, layer: torch.nn.Module) -> None:
+        _ensure_gptq_shuffle_compat()
         super().process_weights_after_loading(layer)
 
         c = self.config
         if c.group_size not in (64, 128):
             return
 
-        w_q, w_s, w_zp, w_g_idx = self._get_weight_params(layer)
+        w_q, w_s, w_zp = self._get_weight_params(layer)
         assert w_zp is not None, "Zero points are required by Exllama"
-        assert w_g_idx is not None, "Group index is required by Exllama"
+        # vLLM >= 0.30 removed GPTQ group/dynamic activation ordering, so the
+        # layer no longer carries a g_idx weight. Keep the MetaX GEM kernel
+        # happy by passing the same empty tensor sentinel it uses for
+        # "no act reordering".
+        g_idx = torch.empty((0,), dtype=torch.int32, device="meta")
 
         if w_s.dtype == torch.bfloat16:
             return
@@ -180,11 +200,11 @@ class MacaExllamaLinearKernel(vllm_ExllamaLinearKernel):
             w_s,
             w_zp,
             None,
-            w_g_idx,
+            g_idx,
             True,
             c.weight_type.size_bits,
             c.group_size,
-            c.has_g_idx,
+            False,
         )
 
     def apply_weights(
@@ -195,21 +215,21 @@ class MacaExllamaLinearKernel(vllm_ExllamaLinearKernel):
     ) -> torch.Tensor:
         c = self.config
 
-        w_q, w_s, w_zp, w_g_idx = self._get_weight_params(layer)
+        w_q, w_s, w_zp = self._get_weight_params(layer)
 
         assert w_zp is not None, "Zero points are required by Exllama"
-        assert w_g_idx is not None, "Group index is required by Exllama"
+        g_idx = torch.empty((0,), dtype=torch.int32, device="meta")
         return _apply_gptq_impl(
             x,
             w_q,
             w_s,
             w_zp,
             bias,
-            w_g_idx,
+            g_idx,
             True,
             c.weight_type.size_bits,
             c.group_size,
-            c.has_g_idx,
+            False,
         )
 
 

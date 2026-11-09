@@ -107,6 +107,185 @@ monkey patches.
 | `enhancement/deepseek_v41_support.py`: package export `DeepseekV4FP8Config` | **Remove redundant export patch.** Target `model_executor/layers/quantization/__init__.py` uses the V4.1 package branch only for CUDA/ROCm. MetaX registers its quantization implementation through the platform/quantization registry instead. The package assignment and activation import are absent; retain verification of the actual registered config in the registry's audit scope. |
 | `enhancement/quant_kernels/moe_align_block_size.py`: prior run-only native ABI bridge | **Remove from the active inventory; current runtime disposition needs revalidation.** An earlier run introduced a seven-argument MCOPLIB/eight-argument upstream wrapper bridge. The current tree contains neither this module nor its activation import. Its historical component/model results cannot establish current ABI compatibility, and absence alone does not prove the underlying issue was fixed. Do not retain the old appended active-patch claim. |
 
+## DeepEP / DeepGEMM port from mx/v0.26.0-dev (2026-10-26)
+
+Source commits: `00c16d9e`, `824dab1d`, `d22954e7`, `36066ea5`.
+Target plugin baseline: `2aa4a7dc` on `mx/v0.30.0-dev`; upstream source review:
+[`ced6857afa0e`](https://github.com/vllm-project/vllm/tree/ced6857afa0e).
+
+| Area | Adaptation and removal condition |
+| --- | --- |
+| DeepEP LL and INT8 experts | Restore the receiver override independently of the target's MxMesh/DBO finalize implementation. Read clamp/alpha/beta from `activation_config`. Packed OAI SwiGLU uses mcoplib's `gemm1_limit` keyword; retain the dense activation fallback for unsupported fused variants. Remove the helpers when native modular experts accept this packed format directly. |
+| Source-packed runner | Preserve both `input_ids` and `shared_experts_input`; bind pending carriers to their producing runner. Correct the MetaX V4 decoder path to `models.deepseek_v4.metax.model`. In V4 source-packed mode, disable MHC's fused FFN RMSNorm and invoke the packed RMSNorm exactly once. Keep ordinary MHC normalization when the mode is off. Source-packed mode requires DeepEP, TP1/EP, no SP/PCP, no DBO/LoRA, and no routed transforms; MxMesh is rejected for byte-carrier dispatch. Remove the adapter when the model/runner provides a native packed-input edge. |
+| Mooncake early-ready | Fix the original indentation error and activate through lazy connector-factory hooks. Eagerly importing the native Mooncake engine during general plugin registration caused exit-time `double free` on the validation image; importing only when the factory selects Mooncake preserves ordinary plugin startup/teardown. Replace the removed DP-index helper with the target worker's `local_engines_only` / `data_parallel_rank_local` selection. Incomplete worker registration or notification failure closes sockets and backs off; malformed early messages leave regular metadata delivery usable. Preserve pending duplicate tracking at its capacity limit. Remove when upstream delivers ready events independently of scheduled model batches. |
+| Modular output alias | Do not reintroduce `modular_moe_output_alias`: the reviewed upstream `_fused_experts` already aliases compatible output buffers on non-ROCm platforms. |
+
+Defaults follow the final source commit: masked INT8 and Mooncake early-ready
+are enabled; source-packed dispatch and native masked activation are disabled.
+Set `VLLM_METAX_MASKED_INT8_MOE=0` or
+`VLLM_METAX_MOONCAKE_EARLY_READY=0` to disable the respective optimization.
+For source-packed V4 with clamped SiLU, set all three:
+`VLLM_METAX_MASKED_INT8_MOE=1`, `VLLM_METAX_SOURCE_PACKED_MOE=1`, and
+`VLLM_METAX_NATIVE_MASKED_ACT=1`.
+
+The masked INT8 switch controls both INT8- and INT4-weight paths and defaults
+to enabled for both. Set `VLLM_METAX_MASKED_INT8_MOE=0` to disable both paths.
+The old W4A8 masked spelling is no longer read. Either old source-packing
+activation input still enables the single shared adapter. New launch
+configurations should use `VLLM_METAX_MASKED_INT8_MOE` and
+`VLLM_METAX_SOURCE_PACKED_MOE` for both formats.
+The former reference-comparison mode has been removed.
+
+CPU control-flow regressions (stubbed GPU/vLLM dependencies):
+`python tests/patch/test_deepep_030_port.py`.
+MACA numerical checks, requiring a matching installed plugin and mcoplib:
+`python -m pytest tests/kernels/moe/test_masked_int8_port.py -q`.
+The Windows workstation has no torch/vLLM/MACA runtime. Server validation on
+2026-10-26 used three nodes (10.13.81.47 / .23 / .26), each reporting eight
+64-GiB MetaX C500 devices. vLLM is 0.30.0, upstream `gced6857af`; torch is
+`2.10.0+metax20261021.1125`. Tests imported the isolated source checkout through
+`PYTHONPATH`, with the installed allocator binary linked into that checkout.
+The installed Python packages were not replaced.
+
+- Basic GPU numerical tests: **7 passed, 1 intentional skip on all three nodes**.
+- Expanded expert/GPU-graph tests: **9 passed, 1 intentional skip on .47**.
+  This includes two-GEMM experts with and without clamp=10 and graph replay
+  matching the optimized eager output bit-for-bit. Packed/unpacked GEMM1
+  outputs are identical. Fused native activation skips the baseline's BF16
+  materialization before INT8 quantization: observed final-output relative RMS
+  differences are 0.64% / 0.68%, bounded at 1% in the synthetic regression.
+  These are operator checks, not an end-to-end model accuracy result.
+- Real plugin registration: eager Mooncake activation reproduced exit status
+  134 (`double free`); disabling that activation avoided the failure. After
+  the lazy-loader repair, source-packed plugin registration exits successfully.
+- D DP16/EP16 selected `BATCHED_DEEPGEMM`, but MXSHMEM failed before inference:
+  `mlx5dv_devx_umem_reg failed: 22 Invalid argument; cannot register dbr buf`.
+  A separate two-node/two-rank check reproduced this in `deep_ep.Buffer`
+  initialization with unlimited memlock, before calling the port's prepare or
+  finalize logic. Gloo connected both ranks successfully.
+- P TP4/PP2 loaded weights but failed during warmup: the installed
+  `_moe_C::topk_softplus_sqrt` schema accepts 10 arguments while upstream calls
+  it with 12. Installed mcoplib is
+  `0.4.12+g9786064.maca20260920.1380.torch2.10`; the branch requirements pin
+  `0.4.14+g5780a78.maca3.9.0.31.torch2.10`. Resolve the native dependency
+  mismatch before repeating model validation.
+- At 18:17 CST the master SSH endpoint refused connections; .23 had already
+  become unreachable from both peers. Further server testing and final process
+  cleanup verification require restored access. The P process group received
+  SIGTERM before losing access. The test proxy and any .23 leftovers could
+  not be rechecked after access was lost.
+
+Full model Dynamo compilation, multi-rank EPLB/DeepEP inference, Mooncake P/D
+correctness, and TTFT/TPOT comparisons remain **unverified**. After resolving
+the environment and access failures, compare masked INT8 on/off first,
+source-packed on/off second, and early-ready on/off on the P instance third,
+keeping model, topology and workload fixed. Server logs/scripts are under
+`/sw_home/m01289/pdperf/artifacts/port030_20261026_2688ce3a/`.
+
+### Follow-up on C550 (2026-10-26)
+
+The replacement nodes were 10.13.81.122 / .93 / .94, each with eight
+64-GiB C550 devices. Communication used `ens108np0`, with active RDMA HCAs
+`mlx5_62,mlx5_61,mlx5_63,mlx5_60`. The isolated source root was
+`/sw_home/m01289/pdperf/artifacts/port030_c550_20261026_c8545171/`.
+
+- The two-node, two-rank DeepEP prepare/finalize check **passed all eight
+  rank/case combinations**, ordinary and source-packed INT8, with and without
+  a zero-token rank. Maximum absolute error was 0.03125. The previous C500
+  RDMA initialization failure did not reproduce.
+- Expanded expert/GPU-graph checks on .93: **9 passed, 1 intentional skip**.
+- Validation-only overlays temporarily bypassed the old native dependency:
+  the text router forwards the original ten arguments only when `bias_vl`
+  is None and `image_sentinel_lo` is zero, and rejects vision routing.
+  Hash/non-hash and renormalization combinations matched direct native
+  calls bit-for-bit; non-hash results also matched a PyTorch formula.
+- The image's DeepGEMM attention indexer then failed because its observation
+  cache reads inference tensors' unavailable version counter. A temporary
+  overlay disabled cache reuse for those tensors; mutation and capture-guard
+  checks passed for both normal and inference tensors. The image also lacks
+  `deep_gemm_maca`, required by its default C attention backend. A separate
+  temporary switch selected the library's Triton INT8 attention indexer.
+  These overlays affect only the isolated validation copy; installed packages
+  and the production branch's pinned dependency requirements are unchanged.
+- With these overlays, P TP4/PP2 completed graph capture, exposed a healthy
+  API, and **passed 6/6 short QA, 3/3 retrieval checks at 2,762 prompt tokens,
+  and 16/16 concurrent request-isolation checks**. This was a standalone P
+  service test, not a P/D transfer test or a model accuracy benchmark.
+- D DP16/EP16 selected `BATCHED_DEEPGEMM` and loaded weights, but both slave
+  endpoints became unreachable around 18:43 CST, before completing the
+  corrected environment run. The master endpoint refused connections around
+  18:47, after downloading the standalone P results. The planned single-node
+  D fallback command could not connect and therefore did not execute.
+- At initial idle state, the requested `use_gpu.py` occupancy program was
+  verified on all eight GPUs of all three nodes; only this run's occupancy
+  processes were stopped as nodes entered tests. Access loss prevents final
+  cleanup or restoration of occupancy from being verified.
+
+Full-model source-packed inference, Mooncake P/D correctness, and controlled
+TTFT/TPOT comparisons remain **unverified**. The P success with a Triton
+attention fallback does not establish performance with the pinned native
+dependencies. Local reproducible overlay scripts and the downloaded P result
+are saved beside the worktrees in `port030-validation-c550-20261026/`.
+
+## DeepSeek V4.1 pipeline token identities
+
+`models/deepseek_v41/metax/model.py` carries `input_ids` alongside hidden
+states and pre-mix tensors across pipeline boundaries. Later stages need the
+original token identities for hash and vision-aware MoE routing, and for any
+local Engram layers. The receive-buffer factory uses an explicit int64 token
+buffer, and senders normalize token IDs to that dtype. Without this state,
+the V2 model runner supplies no token IDs to non-first stages and model
+warmup fails with `DeepSeek V4 vision MoE routing requires input_ids`.
+
+The buffer shape/dtype and receive-prefix behavior have CPU checks in the
+external validation artifacts. DSV4.1 eager TP4/PP2 producers completed
+Mooncake PD requests with both TP4/PP2 and TP8/PP1 consumers on C550.
+Each topology passed 13 deterministic completion comparisons and four
+concurrent requests. Chinese streaming output consistency remains unresolved;
+this is a partial functional result, not full correctness or performance approval.
+`patch/enhancement/pp_kv_cache.py` now installs the empty-PP-group fix through
+MetaX's runtime patch decorator: retain global group IDs while skipping tensor
+views for groups with no local layers. It replaces
+`vllm.v1.core.kv_cache_utils.get_kv_cache_config_from_groups` and synchronizes
+same-name imports through the shared patch installer. The replacement mirrors
+the tested upstream allocation function, including attention-free, HiSparse
+and GLM5 special paths; the only allocation change is the empty-group guard.
+The former direct upstream-core patch is retained as historical reference and
+is no longer required when this MetaX patch is loaded. No vLLM source file is
+written. This patch does not fix physical/logical block-size mapping in Mooncake
+(issue #58362). Remove it after upstream handles empty local PP groups.
+DeepGEMM is unchanged.
+
+## DeepSeek V4.1 DP/EP without DeepEP
+
+`models/deepseek_v41/metax/engram.py:gather_engram_hashes` makes per-layer
+hash IDs contiguous before the node-local DP all-gather. The hash generator
+can return strided column views, and an unpadded view reached the MACA
+collective unchanged, failing with `Tensors must be contiguous`. Padded
+inputs already became contiguous through concatenation. Remove this copy
+when the hash producer guarantees the collective input layout.
+
+`model_executor/layers/fused_moe/experts/triton_moe.py:TritonExperts` excludes
+non-local expert assignments from both W4A8 alignment stages. The W4A8
+MCTLASS entry point does not implement the `filter_expert` contract used by
+other formats, so passing EP's -1 expert IDs causes a kernel memory violation.
+Zero the first workspace for W4A8 EP because omitted routed slots are not
+written; the second workspace already has EP zero-initialization. Other
+quantization formats retain their previous assignment and filtering behavior.
+Remove this workaround after the W4A8 native kernel safely handles and zeros
+non-local expert blocks.
+
+Validation uses an eager TP4/PP2 producer with EP4 and a two-node TP1/PP1,
+DP16/EP16 consumer, with `allgather_reducescatter` on C550. Targeted checks
+reproduce the old Engram layout failure and verify the corrected collective
+input and native local-expert alignment. Real PD requests reach DP0 through
+DP15, including a 16-request concurrent batch. Strict serial output parity
+passes 19 of 29 cases. At prompt lengths 255 and 1023, all 16 consumer ranks
+in standalone mode match the producer, but the saved PD outputs differ; this
+PD-path discrepancy remains unresolved and prevents full correctness approval.
+These changes do not modify DeepGEMM or enable DeepEP. Commands, raw responses, metrics, and both startup
+attempts are stored outside the repository under the DP16 validation artifacts.
+
 ## Shared infrastructure
 
 | Module | Purpose and repair reason | Removal condition |
