@@ -1,0 +1,207 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.7.0 -- /opt/conda/bin/python3
+cachedir: .pytest_cache
+rootdir: /workspace/pd_test_script
+plugins: anyio-4.16.0, platformdirs-4.14.7
+collecting ... collected 2 items
+
+lmcache/test_kv_share_lmcache.py::test_01_centralized_sharing 
+######################################################################
+### 开始测试用例 1: 中心化 KVCache 共享 ###
+######################################################################
+
+[调试信息] 中心化共享测试，日志文件位于: /tmp/pytest-of-root/pytest-2/centralized_sharing_test0
+
+--- 正在启动 LMCache 中心化服务器 ---
+
+--- 正在启动两个 vLLM 实例 ---
+
+--- 等待所有服务端口开放 ---
+✅ 所有服务已成功启动并准备就绪!
+  > 成功连接到 vLLM 服务, 模型 ID: /mxstorage/pde_ai/models/llm/Qwen/Qwen3-4B
+  > 正在生成约 16384 tokens 的长提示...
+
+--- [测试] 正在向实例1 (端口 8000) 发送请求 (冷缓存)... ---
+  > 收到响应: 'What is the purpose of this test? Answer: The text...'
+
+✅ 实例1 (冷) TTFT: 3.467 秒
+
+--- [测试] 等待 8 秒，确保 KVCache 已在对等方之间同步... ---
+
+--- [测试] 正在向实例2 (端口 8001) 发送请求 (热缓存)... ---
+  > 收到响应: 'The text is being used to test the Key-Value Cache...'
+
+✅ 实例2 (热) TTFT: 2.487 秒
+
+==============================
+KVCache 中心化 共享测试 result:
+  Cold TTFT: 3.467s
+  Warm TTFT: 2.487s
+  Speedup: 1.4x
+  Cold text: 'What is the purpose of this test? Answer: The text is being tested to evaluate the Key-Value Cache sharing feature in LMCache when used with vLLM. The purpose of this test is to ensure that the cache sharing mechanism works efficiently, especially when handling a large amount of repeated text, which can generate a significant number of tokens. This helps verify that the system can manage and reuse cached data effectively without performance degradation, which is crucial for maintaining efficiency in large-scale language model applications. The text is being tested to evaluate the Key-Value Cache sharing feature in LMCache when used with vLLM. The purpose of this test'
+  Warm text: 'The text is being used to test the Key-Value Cache sharing feature in LMCache with vLLM. The repetition of the sentence generates a significant number of tokens, which is being tested. The key-value cache sharing feature in LMCache with vLLM is being tested by repeating the sentence multiple times to generate a significant number of tokens. The key-value cache sharing feature in LMCache with vLLM is being tested by repeating the sentence multiple times to generate a significant number of tokens. The key-value cache sharing feature in LMCache with vLLM is being tested by repeating the sentence multiple times to generate a significant number of tokens'
+==============================
+KVCache 中心化 共享测试通过!
+
+--- 正在关闭所有服务 ---
+GPU 3: 62.1/63.6 GiB free, proceeding.
+GPU 4: 62.1/63.6 GiB free, proceeding.
+
+### 测试用例 1: 中心化 KVCache 共享 完成 ###
+PASSED
+lmcache/test_kv_share_lmcache.py::test_02_p2p_sharing 
+######################################################################
+### 开始测试用例 2: P2P KVCache 共享 (v2) ###
+######################################################################
+
+[调试信息] P2P v2 共享测试，日志文件位于: /tmp/pytest-of-root/pytest-2/p2p_v2_sharing_test0
+
+--- 正在启动 LMCache Controller ---
+
+--- 正在启动两个 vLLM 实例 (P2P v2 模式) ---
+
+--- 等待所有服务端口开放 ---
+[FATAL] Timeout waiting for localhost:8000 during startup.
+
+--- 正在关闭所有服务 (包括 lmcache_controller) ---
+pid=25482 (pgid=25482) did not exit on SIGTERM, sending SIGKILL to its process group.
+pid=25481 (pgid=25481) did not exit on SIGTERM, sending SIGKILL to its process group.
+GPU 3: 62.1/63.6 GiB free, proceeding.
+GPU 4: 62.1/63.6 GiB free, proceeding.
+FAILED
+
+=================================== FAILURES ===================================
+_____________________________ test_02_p2p_sharing ______________________________
+
+host = 'localhost', port = 8000, timeout = 180
+process = <Popen: returncode: -9 args: ['vllm', 'serve', '/mxstorage/pde_ai/models/llm...>
+processes = None, log_paths = None, log_handles = None, stage = 'startup'
+
+    def wait_for_port(host, port, timeout=180, process=None, processes=None, log_paths=None,
+                       log_handles=None, stage="startup"):
+        """Block until `host:port` accepts a connection.
+    
+        Accepts either a single `process` (Popen) or a `processes` dict of
+        {name: Popen} -- if any of them has already exited, fail fast with the
+        tail of its log instead of waiting out the full timeout.
+        """
+        all_processes = dict(processes) if processes else {}
+        if process is not None:
+            all_processes.setdefault(stage, process)
+    
+        start = time.monotonic()
+        while True:
+            for name, proc in all_processes.items():
+                retcode = proc.poll()
+                if retcode is not None:
+                    print(f"[FATAL] Process {name} exited unexpectedly during {stage} with code {retcode}.")
+                    if log_paths:
+                        dump_logs(log_paths, log_handles)
+                    raise RuntimeError(f"Process {name} exited unexpectedly during {stage} with code {retcode}.")
+            try:
+>               with socket.create_connection((host, port), timeout=1):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+common.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/conda/lib/python3.12/socket.py:865: in create_connection
+    raise exceptions[0]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+address = ('localhost', 8000), timeout = 1, source_address = None
+
+    def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT,
+                          source_address=None, *, all_errors=False):
+        """Connect to *address* and return the socket object.
+    
+        Convenience function.  Connect to *address* (a 2-tuple ``(host,
+        port)``) and return the socket object.  Passing the optional
+        *timeout* parameter will set the timeout on the socket instance
+        before attempting to connect.  If no *timeout* is supplied, the
+        global default timeout setting returned by :func:`getdefaulttimeout`
+        is used.  If *source_address* is set it must be a tuple of (host, port)
+        for the socket to bind as a source address before making the connection.
+        A host of '' or port 0 tells the OS to use the default. When a connection
+        cannot be created, raises the last error if *all_errors* is False,
+        and an ExceptionGroup of all errors if *all_errors* is True.
+        """
+    
+        host, port = address
+        exceptions = []
+        for res in getaddrinfo(host, port, 0, SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket(af, socktype, proto)
+                if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+>               sock.connect(sa)
+E               ConnectionRefusedError: [Errno 111] Connection refused
+
+/opt/conda/lib/python3.12/socket.py:850: ConnectionRefusedError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x7f8fbd266960>, _basetemp=PosixPath('/tmp/pytest-of-root/pytest-2'), _retention_count=3, _retention_policy='all')
+
+    def test_02_p2p_sharing(tmp_path_factory):
+        """测试用例 2: 验证 P2P KVCache 共享 (已更新)"""
+        print("\n" + "#"*70)
+        print("### 开始测试用例 2: P2P KVCache 共享 (v2) ###")
+        print("#"*70)
+>       with p2p_sharing_service(tmp_path_factory) as service_info:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+lmcache/test_kv_share_lmcache.py:605: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/conda/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+lmcache/test_kv_share_lmcache.py:411: in p2p_sharing_service
+    _wait_for_port(VLLM_HOST, VLLM_PORT_1, process=p_vllm1)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+host = 'localhost', port = 8000, timeout = 180
+process = <Popen: returncode: -9 args: ['vllm', 'serve', '/mxstorage/pde_ai/models/llm...>
+processes = None, log_paths = None, log_handles = None, stage = 'startup'
+
+    def wait_for_port(host, port, timeout=180, process=None, processes=None, log_paths=None,
+                       log_handles=None, stage="startup"):
+        """Block until `host:port` accepts a connection.
+    
+        Accepts either a single `process` (Popen) or a `processes` dict of
+        {name: Popen} -- if any of them has already exited, fail fast with the
+        tail of its log instead of waiting out the full timeout.
+        """
+        all_processes = dict(processes) if processes else {}
+        if process is not None:
+            all_processes.setdefault(stage, process)
+    
+        start = time.monotonic()
+        while True:
+            for name, proc in all_processes.items():
+                retcode = proc.poll()
+                if retcode is not None:
+                    print(f"[FATAL] Process {name} exited unexpectedly during {stage} with code {retcode}.")
+                    if log_paths:
+                        dump_logs(log_paths, log_handles)
+                    raise RuntimeError(f"Process {name} exited unexpectedly during {stage} with code {retcode}.")
+            try:
+                with socket.create_connection((host, port), timeout=1):
+                    return
+            except OSError:
+                if time.monotonic() - start >= timeout:
+                    print(f"[FATAL] Timeout waiting for {host}:{port} during {stage}.")
+                    if log_paths:
+                        dump_logs(log_paths, log_handles)
+>                   raise TimeoutError(f"Port {port} not ready in {timeout}s")
+E                   TimeoutError: Port 8000 not ready in 180s
+
+common.py:110: TimeoutError
+- generated xml file: /workspace/pd_test_script/artifacts/test_runs/20261125_162623/lmcache__test_kv_share_lmcache.py/junit.xml -
+=========================== short test summary info ============================
+FAILED lmcache/test_kv_share_lmcache.py::test_02_p2p_sharing - TimeoutError: Port 8000 not ready in 180s
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+=================== 1 failed, 1 passed in 452.11s (0:07:32) ====================
