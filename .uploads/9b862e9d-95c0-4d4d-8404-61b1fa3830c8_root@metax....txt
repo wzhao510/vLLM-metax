@@ -1,0 +1,203 @@
+root@metax-jiqun-09:/tmp# python3 -c '
+import uuid
+from nixl._api import nixl_agent, nixl_agent_config
+a = nixl_agent(str(uuid.uuid4()), nixl_agent_config(backends=[]))
+for p in a.plugin_list:
+    print(p, "->", a.get_plugin_params(p), flush=True)
+' 2>&1
+2026-11-26 16:35:01 NIXL INFO    _api.py:251 Initialized NIXL agent: f0a703f9-0fad-430a-823e-f0fcc4b0b4c6
+GDS -> {}
+GDS_MT -> {}
+POSIX -> {}
+UCX -> {'ucx_devices': '', 'ucx_error_handling_mode': 'peer', 'num_workers': '1'}
+Segmentation fault (core dumped)
+root@metax-jiqun-09:/tmp# for BK in POSIX GDS GDS_MT UCX; do
+  echo "=== $BK ==="
+  BK=$BK timeout -s KILL 40 python3 -c '
+import os, uuid
+from nixl._api import nixl_agent, nixl_agent_config
+a = nixl_agent(str(uuid.uuid4()), nixl_agent_config(backends=[os.environ["BK"]]))
+print("OK", os.environ["BK"], flush=True)
+' 2>&1
+  echo "exit=$?"
+done
+
+for NT in 1 2; do
+  echo "=== UCX num_threads=$NT ==="
+  NT=$NT timeout -s KILL 40 python3 -c '
+import os, uuid
+from nixl._api import nixl_agent, nixl_agent_config
+a = nixl_agent(str(uuid.uuid4()), nixl_agent_config(backends=["UCX"], num_threads=int(os.environ["NT"])))
+print("OK UCX nt", os.environ["NT"], flush=True)
+' 2>&1
+  echo "exit=$?"
+done
+=== POSIX ===
+2026-11-26 16:35:38 NIXL INFO    _api.py:361 Backend POSIX was instantiated
+2026-11-26 16:35:38 NIXL INFO    _api.py:251 Initialized NIXL agent: b50380ef-4b23-4e19-89a7-eb17371d82ac
+OK POSIX
+timeout: the monitored command dumped core
+Segmentation fault
+exit=139
+=== GDS ===
+2026-11-26 16:35:54 NIXL INFO    _api.py:361 Backend GDS was instantiated
+2026-11-26 16:35:54 NIXL INFO    _api.py:251 Initialized NIXL agent: 4a2e68f1-2063-4056-865f-55e00ce619af
+OK GDS
+timeout: the monitored command dumped core
+Segmentation fault
+exit=139
+=== GDS_MT ===
+2026-11-26 16:36:09 NIXL INFO    _api.py:361 Backend GDS_MT was instantiated
+2026-11-26 16:36:09 NIXL INFO    _api.py:251 Initialized NIXL agent: a03eee25-f6c4-4367-931f-7278b17b4817
+OK GDS_MT
+timeout: the monitored command dumped core
+Segmentation fault
+exit=139
+=== UCX ===
+Killed
+exit=137
+=== UCX num_threads=1 ===
+Killed
+exit=137
+=== UCX num_threads=2 ===
+Killed
+exit=137
+root@metax-jiqun-09:/tmp# NIXL_LOG_LEVEL=TRACE UCX_LOG_LEVEL=debug UCX_LOG_FILE=/tmp/ucx_dbg.log \
+timeout -s KILL 40 python3 -c '
+import uuid
+from nixl._api import nixl_agent, nixl_agent_config
+a = nixl_agent(str(uuid.uuid4()), nixl_agent_config(backends=["UCX"]))
+print("OK", flush=True)
+' 2>&1 | tail -50
+echo "exit=$?"
+echo "----- UCX tail -----"; tail -60 /tmp/ucx_dbg.log
+Killed
+exit=137
+----- UCX tail -----
+[1795682324.907205] [metax-jiqun-09:332934:0]            init.c:122  UCX  DEBUG cmd line: python3 -c 
+[1795682324.907205] [metax-jiqun-09:332934:0]            init.c:122  UCX  DEBUG import uuid
+[1795682324.907205] [metax-jiqun-09:332934:0]            init.c:122  UCX  DEBUG from nixl._api import nixl_agent, nixl_agent_config
+[1795682324.907205] [metax-jiqun-09:332934:0]            init.c:122  UCX  DEBUG a = nixl_agent(str(uuid.uuid4()), nixl_agent_config(backends=["UCX"]))
+[1795682324.907205] [metax-jiqun-09:332934:0]            init.c:122  UCX  DEBUG print("OK", flush=True)
+[1795682324.907205] [metax-jiqun-09:332934:0]            init.c:122  UCX  DEBUG  
+[1795682324.909048] [metax-jiqun-09:332934:0]            time.c:22   UCX  DEBUG arch clock frequency: 2093991341.99 Hz
+[1795682324.909054] [metax-jiqun-09:332934:0]            time.c:22   UCX  DEBUG arch clock frequency: 2093991341.99 Hz
+[1795682324.910766] [metax-jiqun-09:332934:0]          module.c:304  UCX  DEBUG loading modules for uct
+[1795682324.910769] [metax-jiqun-09:332934:0]          module.c:304  UCX  DEBUG loading modules for uct
+[1795682324.910772] [metax-jiqun-09:332934:0]          module.c:257  UCX  DEBUG loading module 'ib' with mode 0x1
+[1795682324.910774] [metax-jiqun-09:332934:0]          module.c:257  UCX  DEBUG loading module 'ib' with mode 0x1
+[1795682324.911405] [metax-jiqun-09:332934:0]          module.c:304  UCX  DEBUG loading modules for uct_ib
+[1795682324.911409] [metax-jiqun-09:332934:0]          module.c:304  UCX  DEBUG loading modules for uct_ib
+[1795682324.911422] [metax-jiqun-09:332934:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_ib.so.0.0.0 [0x5625854037d0]
+[1795682324.911424] [metax-jiqun-09:332934:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_ib.so.0.0.0 [0x5625854037d0]
+[1795682324.911428] [metax-jiqun-09:332934:0]          module.c:257  UCX  DEBUG loading module 'cma' with mode 0x1
+[1795682324.911430] [metax-jiqun-09:332934:0]          module.c:257  UCX  DEBUG loading module 'cma' with mode 0x1
+[1795682324.911517] [metax-jiqun-09:332934:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_cma.so.0.0.0 [0x5625854057f0]
+[1795682324.911519] [metax-jiqun-09:332934:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_cma.so.0.0.0 [0x5625854057f0]
+[1795682324.911522] [metax-jiqun-09:332934:0]          module.c:257  UCX  DEBUG loading module 'maca' with mode 0x1
+[1795682324.911524] [metax-jiqun-09:332934:0]          module.c:257  UCX  DEBUG loading module 'maca' with mode 0x1
+[1795682328.508790] [metax-jiqun-09:332934:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_maca.so.0.0.0 [0x562585405f60]
+[1795682328.508799] [metax-jiqun-09:332934:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_maca.so.0.0.0 [0x562585405f60]
+[1795682328.508825] [metax-jiqun-09:332934:0]          module.c:201  UCX  DEBUG calling 'ucs_module_global_init' in '/opt/maca-3.10.1/ucx/lib/ucx/libuct_maca.so.0.0.0': [0x7fac8f00a298]
+[1795682328.508827] [metax-jiqun-09:332934:0]          module.c:201  UCX  DEBUG calling 'ucs_module_global_init' in '/opt/maca-3.10.1/ucx/lib/ucx/libuct_maca.so.0.0.0': [0x7fac8f00a298]
+[1795682328.508862] [metax-jiqun-09:332934:0]          module.c:304  UCX  DEBUG loading modules for uct_maca
+[1795682328.508864] [metax-jiqun-09:332934:0]          module.c:304  UCX  DEBUG loading modules for uct_maca
+[1795682328.509245] [metax-jiqun-09:332934:0]     ucp_context.c:2523 UCX  INFO  Version 1.20.1 (loaded from /opt/maca/ucx/lib/libucp.so.0)
+[1795682328.509248] [metax-jiqun-09:332934:0]     ucp_context.c:2523 UCX  INFO  Version 1.20.1 (loaded from /opt/maca/ucx/lib/libucp.so.0)
+[1795682328.509256] [metax-jiqun-09:332934:0]     ucp_context.c:2260 UCX  DEBUG estimated number of endpoints is 1
+[1795682328.509258] [metax-jiqun-09:332934:0]     ucp_context.c:2260 UCX  DEBUG estimated number of endpoints is 1
+[1795682328.509260] [metax-jiqun-09:332934:0]     ucp_context.c:2267 UCX  DEBUG estimated number of endpoints per node is 1
+[1795682328.509262] [metax-jiqun-09:332934:0]     ucp_context.c:2267 UCX  DEBUG estimated number of endpoints per node is 1
+[1795682328.509264] [metax-jiqun-09:332934:0]     ucp_context.c:2273 UCX  DEBUG node local id is 0
+[1795682328.509265] [metax-jiqun-09:332934:0]     ucp_context.c:2273 UCX  DEBUG node local id is 0
+[1795682328.509280] [metax-jiqun-09:332934:0]     ucp_context.c:2283 UCX  DEBUG estimated bcopy bandwidth is 6081740800.000000
+[1795682328.509284] [metax-jiqun-09:332934:0]     ucp_context.c:2283 UCX  DEBUG estimated bcopy bandwidth is 6081740800.000000
+[1795682328.509293] [metax-jiqun-09:332934:0]     ucp_context.c:2348 UCX  DEBUG allocation method[0] is md 'sysv'
+[1795682328.509295] [metax-jiqun-09:332934:0]     ucp_context.c:2348 UCX  DEBUG allocation method[0] is md 'sysv'
+[1795682328.509297] [metax-jiqun-09:332934:0]     ucp_context.c:2348 UCX  DEBUG allocation method[1] is md 'posix'
+[1795682328.509299] [metax-jiqun-09:332934:0]     ucp_context.c:2348 UCX  DEBUG allocation method[1] is md 'posix'
+[1795682328.509302] [metax-jiqun-09:332934:0]     ucp_context.c:2360 UCX  DEBUG allocation method[2] is 'thp'
+[1795682328.509304] [metax-jiqun-09:332934:0]     ucp_context.c:2360 UCX  DEBUG allocation method[2] is 'thp'
+[1795682328.509306] [metax-jiqun-09:332934:0]     ucp_context.c:2348 UCX  DEBUG allocation method[3] is md '*'
+[1795682328.509308] [metax-jiqun-09:332934:0]     ucp_context.c:2348 UCX  DEBUG allocation method[3] is md '*'
+[1795682328.509310] [metax-jiqun-09:332934:0]     ucp_context.c:2360 UCX  DEBUG allocation method[4] is 'mmap'
+[1795682328.509312] [metax-jiqun-09:332934:0]     ucp_context.c:2360 UCX  DEBUG allocation method[4] is 'mmap'
+[1795682328.509313] [metax-jiqun-09:332934:0]     ucp_context.c:2360 UCX  DEBUG allocation method[5] is 'heap'
+[1795682328.509315] [metax-jiqun-09:332934:0]     ucp_context.c:2360 UCX  DEBUG allocation method[5] is 'heap'
+[1795682328.511006] [metax-jiqun-09:332934:0]          cma_md.c:134  UCX  DEBUG CMA is disabled: docker does not support process_vm_writev
+[1795682328.511012] [metax-jiqun-09:332934:0]          cma_md.c:134  UCX  DEBUG CMA is disabled: docker does not support process_vm_writev
+[1795682328.511090] [metax-jiqun-09:332934:0]            topo.c:354  UCX  DEBUG added sys_dev 0 for bus id 0e:00.0
+[1795682328.511092] [metax-jiqun-09:332934:0]            topo.c:354  UCX  DEBUG added sys_dev 0 for bus id 0e:00.0
+[1795682328.511123] [metax-jiqun-09:332934:0]            topo.c:354  UCX  DEBUG added sys_dev 1 for bus id 0f:00.0
+[1795682328.511125] [metax-jiqun-09:332934:0]            topo.c:354  UCX  DEBUG added sys_dev 1 for bus id 0f:00.0
+[1795682328.511147] [metax-jiqun-09:332934:0]            topo.c:354  UCX  DEBUG added sys_dev 2 for bus id 10:00.0
+[1795682328.511149] [metax-jiqun-09:332934:0]            topo.c:354  UCX  DEBUG added sys_dev 2 for bus id 10:00.0
+[1795682328.511171] [metax-jiqun-09:332934:0]            topo.c:354  UCX  DEBUG added sys_dev 3 for bus id 12:00.0
+[1795682328.511173] [metaxgrep -n "def create_backend" -A 45 /opt/conda/lib/python3.12/site-packages/nixl/_api.py-jiqun-09:/tmp# grep -n "def create_backend" -A 45 /opt/conda/lib/python3.12/site-packages/nixl/_api.
+
+# MetaX 版 lmcache 的 PD 是否支持 nixl 之外的传输通道（如 mooncake）
+grep -nE "nixl|mooncake|mock_memory|channel_type|transfer_channel" \
+  /opt/conda/lib/python3.12/site-packages/lmcache/v1/transfer_channel/__init__.py | head -30
+353:    def create_backend(self, backend: str, initParams: dict[str, str] = {}):
+354-        self.backends[backend] = self.agent.createBackend(backend, initParams)
+355-
+356-        (backend_options, mem_types) = self.agent.getBackendParams(
+357-            self.backends[backend]
+358-        )
+359-        self.backend_mems[backend] = mem_types
+360-        self.backend_options[backend] = backend_options
+361-        logger.info("Backend %s was instantiated", backend)
+362-
+363-    """
+364-    @brief Register memory regions, optionally with specified backends.
+365-
+366-    @param reg_list List of either memory regions, tensors, or nixlRegDList to register.
+367-    @param mem_type Optional memory type, necessary if specifying a list of memory regions.
+368-    @param backends Optional list of backend names for registration, otherwise NIXL will try to
+369-            register with all backends that support this memory type.
+370-    @return nixlRegDList for the registered memory, can be used with deregister_memory.
+371-    """
+372-
+373-    def register_memory(
+374-        self,
+375-        reg_list,
+376-        mem_type: Optional[str] = None,
+377-        backends: list[str] = [],
+378-    ) -> nixlBind.nixlRegDList:
+379-        reg_descs = self.get_reg_descs(reg_list, mem_type)
+380-
+381-        handle_list = []
+382-        for backend_string in backends:
+383-            handle_list.append(self.backends[backend_string])
+384-        self.agent.registerMem(reg_descs, handle_list)
+385-
+386-        return reg_descs
+387-
+388-    """
+389-    @brief Deregister memory regions from the specified backends.
+390-
+391-    @param dereg_list nixlRegDList of memory to deregister, received from register_memory or get_reg_descs.
+392-    @param backends Optional list of backend names for deregistration, otherwise NIXL will deregister
+393-            with all the backends that have these memory regions registered.
+394-    """
+395-
+396-    def deregister_memory(
+397-        self, dereg_list: nixlBind.nixlRegDList, backends: list[str] = []
+398-    ):
+6:from lmcache.v1.transfer_channel.abstract import BaseTransferChannel
+11:    channel_type: str,
+24:    Supports "nixl" and "mock_memory" channel types.
+25:    If nixl is not available, automatically falls back to mock_memory
+28:    :param channel_type: Type of the transfer channel (e.g., "nixl", "mock_memory").
+41:    assert channel_type in ["nixl", "mock_memory"], (
+42:        f"Unsupported channel type: {channel_type}"
+45:    if channel_type == "nixl":
+47:        from lmcache.v1.transfer_channel.nixl_channel import NixlChannel
+50:            "`backends` must be provided to create nixl transfer channel."
+52:        transfer_channel = NixlChannel(
+63:        return transfer_channel
+65:    if channel_type == "mock_memory":
+67:        from lmcache.v1.transfer_channel.mock_memory_channel import (
+71:        mock_memory_channel: BaseTransferChannel = MockMemoryChannel(
+81:        return mock_memory_channel
+83:    raise ValueError(f"Unsupported channel type: {channel_type}")
