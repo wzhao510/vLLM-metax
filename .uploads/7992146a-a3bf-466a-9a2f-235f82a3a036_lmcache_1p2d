@@ -1,0 +1,904 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.7.0 -- /opt/conda/bin/python3
+cachedir: .pytest_cache
+rootdir: /workspace/pd_test_script
+plugins: anyio-4.16.0, platformdirs-4.14.7
+collecting ... collected 1 item
+
+lmcache/test_lmcache_1p2d_tp2.py::test_chat_completion_round_robin 
+[Info] Test artifacts dir: /tmp/pytest-of-root/pytest-0/run_1p2d_tp20
+[FATAL] Timeout waiting for localhost:7200 during decoder1 startup.
+
+================================================================================
+STARTUP DEBUG LOG DUMP
+================================================================================
+
+--- decoder1: /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder1.log ---
+
+Loading safetensors checkpoint shards:  82% Completed | 14/17 [00:37<00:08,  2.71s/it]
+
+Loading safetensors checkpoint shards:  88% Completed | 15/17 [00:40<00:05,  2.75s/it]
+
+Loading safetensors checkpoint shards:  94% Completed | 16/17 [00:42<00:02,  2.74s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 17/17 [00:44<00:00,  2.56s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 17/17 [00:44<00:00,  2.65s/it]
+
+(Worker_TP0 pid=2863) INFO 11-25 16:28:39 [default_loader.py:501] Loading weights took 45.10 seconds
+(Worker_TP0 pid=2863) INFO 11-25 16:28:40 [model_runner.py:424] Model loading took 30.59 GiB memory and 46.862058 seconds
+(Worker_TP0 pid=2863) INFO 11-25 16:28:40 [torch_utils.py:295] Reducing Torch threads from 64 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+(Worker_TP1 pid=2864) INFO 11-25 16:28:40 [model_runner.py:424] Model loading took 30.59 GiB memory and 47.064446 seconds
+(EngineCore pid=1919) INFO 11-25 16:28:40 [torch_utils.py:295] Reducing Torch threads from 64 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+(EngineCore pid=1919) INFO 11-25 16:28:40 [utils.py:347] Using LBNHC KV cache layout.
+(Worker_TP1 pid=2864) INFO 11-25 16:28:40 [monitor.py:40] [backbone] Starting torch.compile
+(Worker_TP0 pid=2863) INFO 11-25 16:28:41 [monitor.py:40] [backbone] Starting torch.compile
+(Worker_TP0 pid=2863) INFO 11-25 16:28:54 [backends.py:1104] [backbone] Using cache directory: /root/.cache/vllm/torch_compile_cache/a1dfa77ff2/rank_0_0/backbone for vLLM's torch.compile
+(Worker_TP0 pid=2863) INFO 11-25 16:28:54 [backends.py:1166] [backbone] Dynamo bytecode transform time: 13.01 s
+(Worker_TP1 pid=2864) INFO 11-25 16:28:54 [backends.py:1104] [backbone] Using cache directory: /root/.cache/vllm/torch_compile_cache/a1dfa77ff2/rank_1_0/backbone for vLLM's torch.compile
+(Worker_TP1 pid=2864) INFO 11-25 16:28:54 [backends.py:1166] [backbone] Dynamo bytecode transform time: 13.15 s
+(Worker_TP1 pid=2864) INFO 11-25 16:29:00 [backends.py:382] [backbone] Cache the graph of compile range (1, 2048) for later use
+(Worker_TP0 pid=2863) INFO 11-25 16:29:00 [backends.py:382] [backbone] Cache the graph of compile range (1, 2048) for later use
+(Worker_TP1 pid=2864) INFO 11-25 16:29:04 [backends.py:398] [backbone] Compiling a graph for compile range (1, 2048) takes 8.67 s
+(Worker_TP0 pid=2863) INFO 11-25 16:29:04 [backends.py:398] [backbone] Compiling a graph for compile range (1, 2048) takes 8.86 s
+(Worker_TP1 pid=2864) INFO 11-25 16:29:07 [decorators.py:743] [backbone] saved AOT compiled function to /root/.cache/vllm/torch_compile_cache/torch_aot_compile/61a32f2b96d8744a51d59c3d704bc9113af29459057f745cef09b5819ef85288/rank_1_0/model
+(Worker_TP1 pid=2864) INFO 11-25 16:29:07 [monitor.py:62] [backbone] torch.compile took 26.33 s in total
+(Worker_TP0 pid=2863) INFO 11-25 16:29:07 [decorators.py:743] [backbone] saved AOT compiled function to /root/.cache/vllm/torch_compile_cache/torch_aot_compile/61a32f2b96d8744a51d59c3d704bc9113af29459057f745cef09b5819ef85288/rank_0_0/model
+(Worker_TP0 pid=2863) INFO 11-25 16:29:07 [monitor.py:62] [backbone] torch.compile took 26.38 s in total
+(Worker_TP0 pid=2863) INFO 11-25 16:29:08 [monitor.py:91] [backbone] Initial profiling/warmup run took 0.69 s
+(Worker_TP1 pid=2864) INFO 11-25 16:29:08 [monitor.py:91] [backbone] Initial profiling/warmup run took 0.81 s
+
+Capturing CUDA graphs (PIECEWISE):   0%|          | 0/51 [00:00<?, ?it/s]
+Capturing CUDA graphs (PIECEWISE):   2%|▏         | 1/51 [00:00<00:15,  3.29it/s]
+Capturing CUDA graphs (PIECEWISE):   4%|▍         | 2/51 [00:00<00:12,  3.79it/s]
+Capturing CUDA graphs (PIECEWISE):   6%|▌         | 3/51 [00:00<00:11,  4.02it/s]
+Capturing CUDA graphs (PIECEWISE):   8%|▊         | 4/51 [00:01<00:11,  4.14it/s]
+Capturing CUDA graphs (PIECEWISE):  10%|▉         | 5/51 [00:01<00:10,  4.20it/s]
+Capturing CUDA graphs (PIECEWISE):  12%|█▏        | 6/51 [00:01<00:10,  4.23it/s]
+Capturing CUDA graphs (PIECEWISE):  14%|█▎        | 7/51 [00:01<00:10,  4.26it/s]
+Capturing CUDA graphs (PIECEWISE):  16%|█▌        | 8/51 [00:01<00:10,  4.28it/s]
+Capturing CUDA graphs (PIECEWISE):  18%|█▊        | 9/51 [00:02<00:09,  4.21it/s]
+Capturing CUDA graphs (PIECEWISE):  20%|█▉        | 10/51 [00:02<00:09,  4.23it/s]
+Capturing CUDA graphs (PIECEWISE):  22%|██▏       | 11/51 [00:02<00:09,  4.24it/s]
+Capturing CUDA graphs (PIECEWISE):  24%|██▎       | 12/51 [00:02<00:09,  4.26it/s]
+Capturing CUDA graphs (PIECEWISE):  25%|██▌       | 13/51 [00:03<00:08,  4.27it/s]
+Capturing CUDA graphs (PIECEWISE):  27%|██▋       | 14/51 [00:03<00:08,  4.31it/s]
+Capturing CUDA graphs (PIECEWISE):  29%|██▉       | 15/51 [00:03<00:08,  4.34it/s]
+Capturing CUDA graphs (PIECEWISE):  31%|███▏      | 16/51 [00:03<00:07,  4.41it/s]
+Capturing CUDA graphs (PIECEWISE):  33%|███▎      | 17/51 [00:03<00:07,  4.83it/s]
+Capturing CUDA graphs (PIECEWISE):  35%|███▌      | 18/51 [00:04<00:06,  5.16it/s]
+Capturing CUDA graphs (PIECEWISE):  37%|███▋      | 19/51 [00:04<00:05,  5.41it/s]
+Capturing CUDA graphs (PIECEWISE):  39%|███▉      | 20/51 [00:04<00:05,  5.61it/s]
+Capturing CUDA graphs (PIECEWISE):  41%|████      | 21/51 [00:04<00:05,  5.77it/s]
+Capturing CUDA graphs (PIECEWISE):  43%|████▎     | 22/51 [00:04<00:04,  5.88it/s]
+Capturing CUDA graphs (PIECEWISE):  45%|████▌     | 23/51 [00:04<00:04,  5.97it/s]
+Capturing CUDA graphs (PIECEWISE):  47%|████▋     | 24/51 [00:05<00:04,  6.03it/s]
+Capturing CUDA graphs (PIECEWISE):  49%|████▉     | 25/51 [00:05<00:04,  6.06it/s]
+Capturing CUDA graphs (PIECEWISE):  51%|█████     | 26/51 [00:05<00:04,  6.09it/s]
+Capturing CUDA graphs (PIECEWISE):  53%|█████▎    | 27/51 [00:05<00:03,  6.13it/s]
+Capturing CUDA graphs (PIECEWISE):  55%|█████▍    | 28/51 [00:05<00:03,  6.07it/s]
+Capturing CUDA graphs (PIECEWISE):  57%|█████▋    | 29/51 [00:05<00:03,  6.05it/s]
+Capturing CUDA graphs (PIECEWISE):  59%|█████▉    | 30/51 [00:06<00:03,  6.06it/s]
+Capturing CUDA graphs (PIECEWISE):  61%|██████    | 31/51 [00:06<00:03,  6.09it/s]
+Capturing CUDA graphs (PIECEWISE):  63%|██████▎   | 32/51 [00:06<00:03,  6.12it/s]
+Capturing CUDA graphs (PIECEWISE):  65%|██████▍   | 33/51 [00:06<00:02,  6.13it/s]
+Capturing CUDA graphs (PIECEWISE):  67%|██████▋   | 34/51 [00:06<00:02,  6.23it/s]
+Capturing CUDA graphs (PIECEWISE):  69%|██████▊   | 35/51 [00:06<00:02,  6.31it/s]
+Capturing CUDA graphs (PIECEWISE):  71%|███████   | 36/51 [00:07<00:02,  6.38it/s]
+Capturing CUDA graphs (PIECEWISE):  73%|███████▎  | 37/51 [00:07<00:02,  6.48it/s]
+Capturing CUDA graphs (PIECEWISE):  75%|███████▍  | 38/51 [00:07<00:01,  6.52it/s]
+Capturing CUDA graphs (PIECEWISE):  76%|███████▋  | 39/51 [00:07<00:01,  6.65it/s]
+Capturing CUDA graphs (PIECEWISE):  78%|███████▊  | 40/51 [00:07<00:01,  6.74it/s]
+Capturing CUDA graphs (PIECEWISE):  80%|████████  | 41/51 [00:07<00:01,  6.87it/s]
+Capturing CUDA graphs (PIECEWISE):  82%|████████▏ | 42/51 [00:07<00:01,  6.94it/s]
+Capturing CUDA graphs (PIECEWISE):  84%|████████▍ | 43/51 [00:08<00:01,  7.01it/s]
+Capturing CUDA graphs (PIECEWISE):  86%|████████▋ | 44/51 [00:08<00:01,  6.93it/s]
+Capturing CUDA graphs (PIECEWISE):  88%|████████▊ | 45/51 [00:08<00:00,  7.01it/s]
+Capturing CUDA graphs (PIECEWISE):  90%|█████████ | 46/51 [00:08<00:00,  6.96it/s]
+Capturing CUDA graphs (PIECEWISE):  92%|█████████▏| 47/51 [00:08<00:00,  6.78it/s]
+Capturing CUDA graphs (PIECEWISE):  94%|█████████▍| 48/51 [00:08<00:00,  6.79it/s]
+Capturing CUDA graphs (PIECEWISE):  96%|█████████▌| 49/51 [00:08<00:00,  6.74it/s]
+Capturing CUDA graphs (PIECEWISE):  98%|█████████▊| 50/51 [00:09<00:00,  6.88it/s]
+Capturing CUDA graphs (PIECEWISE): 100%|██████████| 51/51 [00:09<00:00,  6.83it/s]
+Capturing CUDA graphs (PIECEWISE): 100%|██████████| 51/51 [00:09<00:00,  5.55it/s]
+
+Capturing CUDA graphs (FULL):   0%|          | 0/2 [00:00<?, ?it/s]
+Capturing CUDA graphs (FULL):  50%|█████     | 1/2 [00:00<00:00,  7.80it/s]
+Capturing CUDA graphs (FULL): 100%|██████████| 2/2 [00:00<00:00,  7.78it/s]
+Capturing CUDA graphs (FULL): 100%|██████████| 2/2 [00:00<00:00,  7.78it/s]
+(Worker_TP0 pid=2863) INFO 11-25 16:29:21 [model_runner.py:1127] Graph capturing finished in 10 secs, took 0.27 GiB
+(Worker_TP1 pid=2864) INFO 11-25 16:29:21 [model_runner.py:1127] Graph capturing finished in 10 secs, took 0.27 GiB
+(Worker_TP1 pid=2864) WARNING 11-25 16:29:21 [gpu_worker.py:791] CUDA graph memory profiling is disabled (VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0). Without it, CUDA graph memory is not accounted for during KV cache allocation, which may require lowering --gpu-memory-utilization to avoid OOM. Consider re-enabling it (the default as of v0.21.0) and increasing --gpu-memory-utilization from 0.8500 to 0.8549.
+(Worker_TP0 pid=2863) INFO 11-25 16:29:21 [gpu_worker.py:759] Available KV cache memory: 21.42 GiB
+(Worker_TP0 pid=2863) WARNING 11-25 16:29:21 [gpu_worker.py:791] CUDA graph memory profiling is disabled (VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0). Without it, CUDA graph memory is not accounted for during KV cache allocation, which may require lowering --gpu-memory-utilization to avoid OOM. Consider re-enabling it (the default as of v0.21.0) and increasing --gpu-memory-utilization from 0.8500 to 0.8550.
+(EngineCore pid=1919) INFO 11-25 16:29:21 [kv_cache_utils.py:2327] GPU KV cache size: 175,440 tokens, Maximum concurrency for 40,960 tokens per request: 4.28x
+(Worker_TP0 pid=2863) INFO 11-25 16:29:21 [factory.py:62] Creating v1 connector with name: LMCacheConnectorV1 and engine_id: 3ba04c7d-c20d-4ebb-80a1-902afee81875
+(Worker_TP0 pid=2863) WARNING 11-25 16:29:21 [base.py:214] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(Worker_TP0 pid=2863) INFO 11-25 16:29:21 [lmcache_connector.py:100] Initializing latest dev LMCache connector
+(Worker_TP1 pid=2864) INFO 11-25 16:29:21 [factory.py:62] Creating v1 connector with name: LMCacheConnectorV1 and engine_id: 3ba04c7d-c20d-4ebb-80a1-902afee81875
+(Worker_TP1 pid=2864) WARNING 11-25 16:29:21 [base.py:214] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(Worker_TP1 pid=2864) INFO 11-25 16:29:21 [lmcache_connector.py:100] Initializing latest dev LMCache connector
+[32;20m[2026-11-25 16:29:21,997] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/opt/conda/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-11-25 16:29:21,997] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+[32;20m[2026-11-25 16:29:22,002] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/opt/conda/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-11-25 16:29:22,003] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+[32;20m[2026-11-25 16:29:22,611] LMCache INFO:[0m Discovered API module: env_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,612] LMCache INFO:[0m Discovered API module: env_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,630] LMCache INFO:[0m Discovered API module: loglevel_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,631] LMCache INFO:[0m Discovered API module: loglevel_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,631] LMCache INFO:[0m Discovered API module: metrics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,632] LMCache INFO:[0m Discovered API module: metrics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,633] LMCache INFO:[0m Discovered API module: periodic_thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,634] LMCache INFO:[0m Discovered API module: periodic_thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,635] LMCache INFO:[0m Discovered API module: run_script_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,636] LMCache INFO:[0m Discovered API module: run_script_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,637] LMCache INFO:[0m Discovered API module: thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,637] LMCache INFO:[0m Discovered API module: thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,642] LMCache INFO:[0m Discovered API module: backend_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,642] LMCache INFO:[0m Discovered API module: backend_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,642] LMCache INFO:[0m Discovered API module: bypass_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,643] LMCache INFO:[0m Discovered API module: bypass_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,647] LMCache INFO:[0m Discovered API module: cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,647] LMCache INFO:[0m Discovered API module: cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,653] LMCache INFO:[0m Discovered API module: chunk_statistics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,654] LMCache INFO:[0m Discovered API module: chunk_statistics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,655] LMCache INFO:[0m Discovered API module: conf_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,656] LMCache INFO:[0m Discovered API module: conf_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,656] LMCache INFO:[0m Discovered API module: freeze_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,656] LMCache INFO:[0m Discovered API module: freeze_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,657] LMCache INFO:[0m Discovered API module: hot_cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,657] LMCache INFO:[0m Discovered API module: hot_cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,658] LMCache INFO:[0m Discovered API module: inference_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,658] LMCache INFO:[0m Discovered API module: inference_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,661] LMCache INFO:[0m Discovered API module: load_fs_chunks_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,661] LMCache INFO:[0m Discovered API module: load_fs_chunks_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,662] LMCache INFO:[0m Discovered API module: lookup_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,663] LMCache INFO:[0m Discovered API module: lookup_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,663] LMCache INFO:[0m Discovered API module: version_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,663] LMCache INFO:[0m Discovered API module: version_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,673] LMCache INFO:[0m Discovered API module: key_stats_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,674] LMCache INFO:[0m Discovered API module: key_stats_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,675] LMCache INFO:[0m Discovered API module: worker_info_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,676] LMCache INFO:[0m Discovered API module: worker_info_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,692] LMCache INFO:[0m Loading LMCache config file /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder1.yaml [3m(utils.py:110:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,693] LMCache INFO:[0m Loading LMCache config file /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder1.yaml [3m(utils.py:110:lmcache.integration.vllm.utils)[0m
+[33;20m[2026-11-25 16:29:22,694] LMCache WARNING:[0m PD (Peer-to-Peer Disaggregation) requires save_unfull_chunk=True for complete KV cache transfer. Automatically setting save_unfull_chunk=True. [3m(config.py:765:lmcache.v1.config)[0m
+[32;20m[2026-11-25 16:29:22,694] LMCache INFO:[0m num_layer: 64, chunk_size: 256, num_kv_head (per gpu): 4, head_size: 128, hidden_dim (D) for KV (per gpu): 512, use mla: False, kv shape: (64, 2, 256, 4, 128), num_draft_layers: 0 [3m(vllm_service_factory.py:111:lmcache.integration.vllm.vllm_service_factory)[0m
+[31;20m[2026-11-25 16:29:22,694] LMCache ERROR:[0m vLLM is not available but tried to query kv cache layout information, cannot get KV cache layout [3m(utils.py:68:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,695] LMCache INFO:[0m Creating LMCacheEngine instance vllm-instance [3m(cache_engine.py:2109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,695] LMCache INFO:[0m NUMA mapping for instance vllm-instance: None [3m(cache_engine.py:2112:lmcache.v1.cache_engine)[0m
+[33;20m[2026-11-25 16:29:22,695] LMCache WARNING:[0m PD (Peer-to-Peer Disaggregation) requires save_unfull_chunk=True for complete KV cache transfer. Automatically setting save_unfull_chunk=True. [3m(config.py:765:lmcache.v1.config)[0m
+[33;20m[2026-11-25 16:29:22,695] LMCache WARNING:[0m Could not load 'builtin' from vLLM. Using builtin hash. This may cause inconsistencies in distributed caching. [3m(token_database.py:162:lmcache.v1.token_database)[0m
+[33;20m[2026-11-25 16:29:22,695] LMCache WARNING:[0m Using builtin hash without PYTHONHASHSEED set. For production environments (non-testing scenarios), you MUST set PYTHONHASHSEED to ensure consistent hashing across processes. Example: export PYTHONHASHSEED=0 [3m(token_database.py:170:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,695] LMCache INFO:[0m num_layer: 64, chunk_size: 256, num_kv_head (per gpu): 4, head_size: 128, hidden_dim (D) for KV (per gpu): 512, use mla: False, kv shape: (64, 2, 256, 4, 128), num_draft_layers: 0 [3m(vllm_service_factory.py:111:lmcache.integration.vllm.vllm_service_factory)[0m
+[32;20m[2026-11-25 16:29:22,695] LMCache INFO:[0m Initialized NONE_HASH=-4222694816171890626 from vLLM (>= PR#20511) [3m(token_database.py:100:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,695] LMCache INFO:[0m Using hash algorithm: builtin [3m(token_database.py:110:lmcache.v1.token_database)[0m
+[31;20m[2026-11-25 16:29:22,695] LMCache ERROR:[0m P/D Disaggregation detected but PYTHONHASHSEED not set. For consistent caching, set: export PYTHONHASHSEED=0 before the engine starts. This will cause incorrect KV cache transfer. [3m(token_database.py:320:lmcache.v1.token_database)[0m
+[31;20m[2026-11-25 16:29:22,695] LMCache ERROR:[0m vLLM is not available but tried to query kv cache layout information, cannot get KV cache layout [3m(utils.py:68:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,695] LMCache INFO:[0m Creating LMCacheEngine instance vllm-instance [3m(cache_engine.py:2109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,695] LMCache INFO:[0m NUMA mapping for instance vllm-instance: None [3m(cache_engine.py:2112:lmcache.v1.cache_engine)[0m
+[33;20m[2026-11-25 16:29:22,695] LMCache WARNING:[0m Could not load 'builtin' from vLLM. Using builtin hash. This may cause inconsistencies in distributed caching. [3m(token_database.py:162:lmcache.v1.token_database)[0m
+[33;20m[2026-11-25 16:29:22,695] LMCache WARNING:[0m Using builtin hash without PYTHONHASHSEED set. For production environments (non-testing scenarios), you MUST set PYTHONHASHSEED to ensure consistent hashing across processes. Example: export PYTHONHASHSEED=0 [3m(token_database.py:170:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,696] LMCache INFO:[0m Initialized NONE_HASH=6394980405596071076 from vLLM (>= PR#20511) [3m(token_database.py:100:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,696] LMCache INFO:[0m Using hash algorithm: builtin [3m(token_database.py:110:lmcache.v1.token_database)[0m
+[31;20m[2026-11-25 16:29:22,696] LMCache ERROR:[0m P/D Disaggregation detected but PYTHONHASHSEED not set. For consistent caching, set: export PYTHONHASHSEED=0 before the engine starts. This will cause incorrect KV cache transfer. [3m(token_database.py:320:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,698] LMCache INFO:[0m Creating LMCacheEngine with config: {'chunk_size': 256, 'local_cpu': False, 'max_local_cpu_size': 0.0, 'local_cpu_use_hugepages': False, 'reserve_local_cpu_size': 0.0, 'local_disk': None, 'local_disk_path_sharding': 'by_gpu', 'max_local_disk_size': 0.0, 'remote_url': None, 'remote_serde': 'naive', 'use_layerwise': False, 'save_decode_cache': False, 'pre_caching_hash_algorithm': 'builtin', 'enable_blending': False, 'blend_recompute_ratios': None, 'blend_thresholds': None, 'blend_check_layers': None, 'blend_min_tokens': 256, 'blend_special_str': ' # # ', 'retrieve_locations': None, 'store_location': None, 'enable_p2p': False, 'p2p_host': None, 'p2p_init_ports': None, 'p2p_lookup_ports': None, 'mp_host': None, 'mp_port': 5555, 'enable_controller': False, 'lmcache_instance_id': 'lmcacheengineconfig_21f4f5c2445045b1b2b1cc1e4dd1591b', 'controller_pull_url': None, 'controller_reply_url': None, 'lmcache_worker_ports': None, 'lmcache_worker_ids': None, 'lmcache_worker_heartbeat_delay_time': 10, 'lmcache_worker_heartbeat_time': None, 'enable_pd': True, 'pd_role': 'receiver', 'pd_buffer_size': 3355443200, 'pd_buffer_device': 'cuda', 'pd_peer_host': 'localhost', 'pd_peer_init_port': [7300, 7301], 'pd_peer_alloc_port': [7400, 7401], 'pd_peer_query_port': None, 'pd_proxy_host': None, 'pd_proxy_port': None, 'pd_allocation_timeout_sec': inf, 'pd_shutdown_timeout_sec': 5.0, 'pd_condition_poll_interval_sec': 0.005, 'pd_max_prefill_len': 0, 'pd_backend_mode': 'async', 'pd_skip_proxy_notification': False, 'pd_bidirectional': False, 'transfer_channel': 'nixl', 'nixl_backends': ['UCX'], 'nixl_buffer_size': None, 'nixl_buffer_device': None, 'gds_path': None, 'gds_path_sharding': 'by_gpu', 'gds_buffer_size': None, 'maru_path': None, 'maru_pool_size': 4.0, 'use_gds': True, 'gds_backend': 'cufile', 'audit_actual_remote_url': None, 'internal_api_server_host': '0.0.0.0', 'extra_config': None, 'save_unfull_chunk': True, 'blocking_timeout_secs': 10, 'external_lookup_client': None, 'py_enable_gc': True, 'cache_policy': 'LRU', 'numa_mode': None, 'enable_async_loading': False, 'internal_api_server_enabled': False, 'internal_api_server_port_start': 6999, 'priority_limit': None, 'internal_api_server_include_index_list': None, 'internal_api_server_socket_path_prefix': None, 'runtime_plugin_locations': None, 'storage_plugins': None, 'remote_storage_plugins': None, 'lookup_timeout_ms': 3000, 'min_retrieve_tokens': 0, 'hit_miss_ratio': None, 'lookup_server_worker_ids': None, 'enable_scheduler_bypass_lookup': False, 'script_allowed_imports': None, 'enable_lazy_memory_allocator': False, 'lazy_memory_initial_ratio': 0.2, 'lazy_memory_expand_trigger_ratio': 0.5, 'lazy_memory_step_ratio': 0.1, 'lazy_memory_safe_size': 0.0, 'enable_chunk_statistics': False, 'chunk_statistics_auto_start_statistics': False, 'chunk_statistics_auto_exit_timeout_hours': 0.0, 'chunk_statistics_auto_exit_target_unique_chunks': 0, 'chunk_statistics_strategy': 'memory_bloom_filter', 'enable_kv_events': False, 'use_gpu_connector_v3': False, 'pin_timeout_sec': 300, 'pin_check_interval_sec': 30, 'remote_config_url': None, 'app_id': None, 'enable_hidden_state_cache': False, 'max_hidden_state_cpu_size': 2.0, 'hidden_state_layers': None, 'hidden_states_retrieve_mode': 'prefix_strict'} [3m(cache_engine.py:109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,698] LMCache INFO:[0m LMCacheWorker is not initialized (related configs: enable_controller: False, role: worker, worker_id: 1, worker_ids: [0, 1]). [3m(cache_engine.py:159:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,698] LMCache INFO:[0m KV events are disabled. [3m(cache_engine.py:188:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,698] LMCache INFO:[0m Initializing usage context. [3m(context.py:171:lmcache.usage_telemetry.context)[0m
+[32;20m[2026-11-25 16:29:22,698] LMCache INFO:[0m Creating LMCacheEngine with config: {'chunk_size': 256, 'local_cpu': False, 'max_local_cpu_size': 0.0, 'local_cpu_use_hugepages': False, 'reserve_local_cpu_size': 0.0, 'local_disk': None, 'local_disk_path_sharding': 'by_gpu', 'max_local_disk_size': 0.0, 'remote_url': None, 'remote_serde': 'naive', 'use_layerwise': False, 'save_decode_cache': False, 'pre_caching_hash_algorithm': 'builtin', 'enable_blending': False, 'blend_recompute_ratios': None, 'blend_thresholds': None, 'blend_check_layers': None, 'blend_min_tokens': 256, 'blend_special_str': ' # # ', 'retrieve_locations': None, 'store_location': None, 'enable_p2p': False, 'p2p_host': None, 'p2p_init_ports': None, 'p2p_lookup_ports': None, 'mp_host': None, 'mp_port': 5555, 'enable_controller': False, 'lmcache_instance_id': 'lmcacheengineconfig_ad78c218f1984e58a00f0e0225e3c4e6', 'controller_pull_url': None, 'controller_reply_url': None, 'lmcache_worker_ports': None, 'lmcache_worker_ids': None, 'lmcache_worker_heartbeat_delay_time': 10, 'lmcache_worker_heartbeat_time': None, 'enable_pd': True, 'pd_role': 'receiver', 'pd_buffer_size': 3355443200, 'pd_buffer_device': 'cuda', 'pd_peer_host': 'localhost', 'pd_peer_init_port': [7300, 7301], 'pd_peer_alloc_port': [7400, 7401], 'pd_peer_query_port': None, 'pd_proxy_host': None, 'pd_proxy_port': None, 'pd_allocation_timeout_sec': inf, 'pd_shutdown_timeout_sec': 5.0, 'pd_condition_poll_interval_sec': 0.005, 'pd_max_prefill_len': 0, 'pd_backend_mode': 'async', 'pd_skip_proxy_notification': False, 'pd_bidirectional': False, 'transfer_channel': 'nixl', 'nixl_backends': ['UCX'], 'nixl_buffer_size': None, 'nixl_buffer_device': None, 'gds_path': None, 'gds_path_sharding': 'by_gpu', 'gds_buffer_size': None, 'maru_path': None, 'maru_pool_size': 4.0, 'use_gds': True, 'gds_backend': 'cufile', 'audit_actual_remote_url': None, 'internal_api_server_host': '0.0.0.0', 'extra_config': None, 'save_unfull_chunk': True, 'blocking_timeout_secs': 10, 'external_lookup_client': None, 'py_enable_gc': True, 'cache_policy': 'LRU', 'numa_mode': None, 'enable_async_loading': False, 'internal_api_server_enabled': False, 'internal_api_server_port_start': 6999, 'priority_limit': None, 'internal_api_server_include_index_list': None, 'internal_api_server_socket_path_prefix': None, 'runtime_plugin_locations': None, 'storage_plugins': None, 'remote_storage_plugins': None, 'lookup_timeout_ms': 3000, 'min_retrieve_tokens': 0, 'hit_miss_ratio': None, 'lookup_server_worker_ids': None, 'enable_scheduler_bypass_lookup': False, 'script_allowed_imports': None, 'enable_lazy_memory_allocator': False, 'lazy_memory_initial_ratio': 0.2, 'lazy_memory_expand_trigger_ratio': 0.5, 'lazy_memory_step_ratio': 0.1, 'lazy_memory_safe_size': 0.0, 'enable_chunk_statistics': False, 'chunk_statistics_auto_start_statistics': False, 'chunk_statistics_auto_exit_timeout_hours': 0.0, 'chunk_statistics_auto_exit_target_unique_chunks': 0, 'chunk_statistics_strategy': 'memory_bloom_filter', 'enable_kv_events': False, 'use_gpu_connector_v3': False, 'pin_timeout_sec': 300, 'pin_check_interval_sec': 30, 'remote_config_url': None, 'app_id': None, 'enable_hidden_state_cache': False, 'max_hidden_state_cpu_size': 2.0, 'hidden_state_layers': None, 'hidden_states_retrieve_mode': 'prefix_strict'} [3m(cache_engine.py:109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,699] LMCache INFO:[0m LMCacheWorker is not initialized (related configs: enable_controller: False, role: worker, worker_id: 0, worker_ids: [0, 1]). [3m(cache_engine.py:159:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,699] LMCache INFO:[0m KV events are disabled. [3m(cache_engine.py:188:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,699] LMCache INFO:[0m Initializing usage context. [3m(context.py:171:lmcache.usage_telemetry.context)[0m
+[32;20m[2026-11-25 16:29:22,700] LMCache INFO:[0m PeriodicThread PinMonitor-thread entering main loop (interval=30.0s) [3m(periodic_thread.py:304:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,700] LMCache INFO:[0m Started PeriodicThread: PinMonitor-thread (level=critical, interval=30.0s, init_wait=0.0s) [3m(periodic_thread.py:248:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,700] LMCache INFO:[0m PeriodicThread PinMonitor-thread entering main loop (interval=30.0s) [3m(periodic_thread.py:304:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,700] LMCache INFO:[0m PinMonitor started [3m(pin_monitor.py:223:lmcache.v1.pin_monitor)[0m
+[32;20m[2026-11-25 16:29:22,700] LMCache INFO:[0m Started PeriodicThread: PinMonitor-thread (level=critical, interval=30.0s, init_wait=0.0s) [3m(periodic_thread.py:248:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,701] LMCache INFO:[0m PinMonitor started [3m(pin_monitor.py:223:lmcache.v1.pin_monitor)[0m
+[32;20m[2026-11-25 16:29:23,135] LMCache INFO:[0m lmcache lookup server started [3m(lmcache_lookup_client.py:270:lmcache.v1.lookup_client.lmcache_lookup_client)[0m
+[32;20m[2026-11-25 16:29:23,137] LMCache INFO:[0m Internal API server disabled. internal_api_server_enabled=False, port_offset=2, port=7001, socket_path=None, include_index_list=None [3m(api_server.py:67:lmcache.v1.internal_api_server.api_server)[0m
+[32;20m[2026-11-25 16:29:23,137] LMCache INFO:[0m LMCache initialized for role KVConnectorRole.WORKER with version NA-NA, vllm version 0.32.0, lmcache cache_engine metadata: LMCacheMetadata(model_name='/mxstorage/pde_ai/models/llm/Qwen/Qwen3-32B/', world_size=2, local_world_size=2, worker_id=1, local_worker_id=1, kv_dtype=torch.bfloat16, kv_shape=(64, 2, 256, 4, 128), use_mla=False, role='worker', served_model_name='qwen2.5', chunk_size=256, kv_layer_groups_manager=None, engine_id='3ba04c7d-c20d-4ebb-80a1-902afee81875', kv_connector_extra_config={'discard_partial_chunks': False, 'lmcache_rpc_port': 'consumer1', 'skip_last_n_tokens': 1}) [3m(vllm_v1_adapter.py:492:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:23,142] LMCache INFO:[0m Registering KV caches [3m(vllm_v1_adapter.py:755:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:23,142] LMCache INFO:[0m Post initializing LMCacheEngine [3m(cache_engine.py:303:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:23,142] LMCache INFO:[0m Initialize storage manager on rank 1, use layerwise: False,save only first rank: False [3m(cache_engine.py:315:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:23,145] LMCache INFO:[0m Setting cuda device to cuda:1  [3m(pd_backend_async.py:445:lmcache.v1.storage_backend.pd_backend_async)[0m
+[32;20m[2026-11-25 16:29:23,146] LMCache INFO:[0m Paged tensor memory allocator initialized, shapes: [torch.Size([64, 2, 256, 4, 128])], dtypes: [torch.bfloat16], align bytes: 33554432 [3m(paged_tensor_memory_allocator.py:108:lmcache.v1.memory_management)[0m
+[32;20m[2026-11-25 16:29:23,154] LMCache INFO:[0m lmcache lookup server started [3m(lmcache_lookup_client.py:270:lmcache.v1.lookup_client.lmcache_lookup_client)[0m
+[32;20m[2026-11-25 16:29:23,155] LMCache INFO:[0m Internal API server disabled. internal_api_server_enabled=False, port_offset=1, port=7000, socket_path=None, include_index_list=None [3m(api_server.py:67:lmcache.v1.internal_api_server.api_server)[0m
+[32;20m[2026-11-25 16:29:23,155] LMCache INFO:[0m LMCache initialized for role KVConnectorRole.WORKER with version NA-NA, vllm version 0.32.0, lmcache cache_engine metadata: LMCacheMetadata(model_name='/mxstorage/pde_ai/models/llm/Qwen/Qwen3-32B/', world_size=2, local_world_size=2, worker_id=0, local_worker_id=0, kv_dtype=torch.bfloat16, kv_shape=(64, 2, 256, 4, 128), use_mla=False, role='worker', served_model_name='qwen2.5', chunk_size=256, kv_layer_groups_manager=None, engine_id='3ba04c7d-c20d-4ebb-80a1-902afee81875', kv_connector_extra_config={'discard_partial_chunks': False, 'lmcache_rpc_port': 'consumer1', 'skip_last_n_tokens': 1}) [3m(vllm_v1_adapter.py:492:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:23,159] LMCache INFO:[0m Registering KV caches [3m(vllm_v1_adapter.py:755:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:23,160] LMCache INFO:[0m Post initializing LMCacheEngine [3m(cache_engine.py:303:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:23,160] LMCache INFO:[0m Initialize storage manager on rank 0, use layerwise: False,save only first rank: False [3m(cache_engine.py:315:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:23,163] LMCache INFO:[0m Setting cuda device to cuda:0  [3m(pd_backend_async.py:445:lmcache.v1.storage_backend.pd_backend_async)[0m
+[32;20m[2026-11-25 16:29:23,163] LMCache INFO:[0m Paged tensor memory allocator initialized, shapes: [torch.Size([64, 2, 256, 4, 128])], dtypes: [torch.bfloat16], align bytes: 33554432 [3m(paged_tensor_memory_allocator.py:108:lmcache.v1.memory_management)[0m
+(EngineCore pid=1919) INFO 11-25 16:30:23 [shm_broadcast.py:871] No available shared memory broadcast block found in 60 seconds. This typically happens when some processes are hanging or doing some time-consuming work (e.g. compilation, weight/kv cache quantization).
+(EngineCore pid=1919) INFO 11-25 16:31:23 [shm_broadcast.py:871] No available shared memory broadcast block found in 60 seconds. This typically happens when some processes are hanging or doing some time-consuming work (e.g. compilation, weight/kv cache quantization).
+
+--- decoder2: /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder2.log ---
+
+Loading safetensors checkpoint shards:  82% Completed | 14/17 [00:37<00:08,  2.71s/it]
+
+Loading safetensors checkpoint shards:  88% Completed | 15/17 [00:40<00:05,  2.75s/it]
+
+Loading safetensors checkpoint shards:  94% Completed | 16/17 [00:42<00:02,  2.74s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 17/17 [00:45<00:00,  2.56s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 17/17 [00:45<00:00,  2.65s/it]
+
+(Worker_TP0 pid=2930) INFO 11-25 16:28:39 [default_loader.py:501] Loading weights took 45.12 seconds
+(Worker_TP0 pid=2930) INFO 11-25 16:28:39 [model_runner.py:424] Model loading took 30.59 GiB memory and 46.618283 seconds
+(Worker_TP0 pid=2930) INFO 11-25 16:28:39 [torch_utils.py:295] Reducing Torch threads from 64 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+(Worker_TP1 pid=2931) INFO 11-25 16:28:40 [model_runner.py:424] Model loading took 30.59 GiB memory and 47.055103 seconds
+(EngineCore pid=1926) INFO 11-25 16:28:40 [torch_utils.py:295] Reducing Torch threads from 64 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+(EngineCore pid=1926) INFO 11-25 16:28:40 [utils.py:347] Using LBNHC KV cache layout.
+(Worker_TP1 pid=2931) INFO 11-25 16:28:40 [monitor.py:40] [backbone] Starting torch.compile
+(Worker_TP0 pid=2930) INFO 11-25 16:28:40 [monitor.py:40] [backbone] Starting torch.compile
+(Worker_TP1 pid=2931) INFO 11-25 16:28:53 [backends.py:1104] [backbone] Using cache directory: /root/.cache/vllm/torch_compile_cache/a1dfa77ff2/rank_1_0/backbone for vLLM's torch.compile
+(Worker_TP1 pid=2931) INFO 11-25 16:28:53 [backends.py:1166] [backbone] Dynamo bytecode transform time: 12.76 s
+(Worker_TP0 pid=2930) INFO 11-25 16:28:53 [backends.py:1104] [backbone] Using cache directory: /root/.cache/vllm/torch_compile_cache/a1dfa77ff2/rank_0_0/backbone for vLLM's torch.compile
+(Worker_TP0 pid=2930) INFO 11-25 16:28:53 [backends.py:1166] [backbone] Dynamo bytecode transform time: 12.92 s
+(Worker_TP1 pid=2931) INFO 11-25 16:29:00 [backends.py:382] [backbone] Cache the graph of compile range (1, 2048) for later use
+(Worker_TP0 pid=2930) INFO 11-25 16:29:00 [backends.py:382] [backbone] Cache the graph of compile range (1, 2048) for later use
+(Worker_TP1 pid=2931) INFO 11-25 16:29:04 [backends.py:398] [backbone] Compiling a graph for compile range (1, 2048) takes 9.47 s
+(Worker_TP0 pid=2930) INFO 11-25 16:29:04 [backends.py:398] [backbone] Compiling a graph for compile range (1, 2048) takes 9.36 s
+(Worker_TP1 pid=2931) INFO 11-25 16:29:07 [decorators.py:743] [backbone] saved AOT compiled function to /root/.cache/vllm/torch_compile_cache/torch_aot_compile/61a32f2b96d8744a51d59c3d704bc9113af29459057f745cef09b5819ef85288/rank_1_0/model
+(Worker_TP1 pid=2931) INFO 11-25 16:29:07 [monitor.py:62] [backbone] torch.compile took 26.73 s in total
+(Worker_TP0 pid=2930) INFO 11-25 16:29:07 [decorators.py:743] [backbone] saved AOT compiled function to /root/.cache/vllm/torch_compile_cache/torch_aot_compile/61a32f2b96d8744a51d59c3d704bc9113af29459057f745cef09b5819ef85288/rank_0_0/model
+(Worker_TP0 pid=2930) INFO 11-25 16:29:07 [monitor.py:62] [backbone] torch.compile took 26.69 s in total
+(Worker_TP0 pid=2930) INFO 11-25 16:29:07 [monitor.py:91] [backbone] Initial profiling/warmup run took 0.69 s
+(Worker_TP1 pid=2931) INFO 11-25 16:29:07 [monitor.py:91] [backbone] Initial profiling/warmup run took 0.70 s
+
+Capturing CUDA graphs (PIECEWISE):   0%|          | 0/51 [00:00<?, ?it/s]
+Capturing CUDA graphs (PIECEWISE):   2%|▏         | 1/51 [00:00<00:12,  3.91it/s]
+Capturing CUDA graphs (PIECEWISE):   4%|▍         | 2/51 [00:00<00:11,  4.09it/s]
+Capturing CUDA graphs (PIECEWISE):   6%|▌         | 3/51 [00:00<00:11,  4.18it/s]
+Capturing CUDA graphs (PIECEWISE):   8%|▊         | 4/51 [00:00<00:11,  4.22it/s]
+Capturing CUDA graphs (PIECEWISE):  10%|▉         | 5/51 [00:01<00:10,  4.24it/s]
+Capturing CUDA graphs (PIECEWISE):  12%|█▏        | 6/51 [00:01<00:10,  4.24it/s]
+Capturing CUDA graphs (PIECEWISE):  14%|█▎        | 7/51 [00:01<00:10,  4.25it/s]
+Capturing CUDA graphs (PIECEWISE):  16%|█▌        | 8/51 [00:01<00:10,  4.26it/s]
+Capturing CUDA graphs (PIECEWISE):  18%|█▊        | 9/51 [00:02<00:10,  4.19it/s]
+Capturing CUDA graphs (PIECEWISE):  20%|█▉        | 10/51 [00:02<00:09,  4.19it/s]
+Capturing CUDA graphs (PIECEWISE):  22%|██▏       | 11/51 [00:02<00:09,  4.20it/s]
+Capturing CUDA graphs (PIECEWISE):  24%|██▎       | 12/51 [00:02<00:09,  4.22it/s]
+Capturing CUDA graphs (PIECEWISE):  25%|██▌       | 13/51 [00:03<00:09,  4.21it/s]
+Capturing CUDA graphs (PIECEWISE):  27%|██▋       | 14/51 [00:03<00:08,  4.25it/s]
+Capturing CUDA graphs (PIECEWISE):  29%|██▉       | 15/51 [00:03<00:08,  4.27it/s]
+Capturing CUDA graphs (PIECEWISE):  31%|███▏      | 16/51 [00:03<00:08,  4.35it/s]
+Capturing CUDA graphs (PIECEWISE):  33%|███▎      | 17/51 [00:03<00:07,  4.75it/s]
+Capturing CUDA graphs (PIECEWISE):  35%|███▌      | 18/51 [00:04<00:06,  5.07it/s]
+Capturing CUDA graphs (PIECEWISE):  37%|███▋      | 19/51 [00:04<00:06,  5.33it/s]
+Capturing CUDA graphs (PIECEWISE):  39%|███▉      | 20/51 [00:04<00:05,  5.52it/s]
+Capturing CUDA graphs (PIECEWISE):  41%|████      | 21/51 [00:04<00:05,  5.68it/s]
+Capturing CUDA graphs (PIECEWISE):  43%|████▎     | 22/51 [00:04<00:05,  5.79it/s]
+Capturing CUDA graphs (PIECEWISE):  45%|████▌     | 23/51 [00:04<00:04,  5.88it/s]
+Capturing CUDA graphs (PIECEWISE):  47%|████▋     | 24/51 [00:05<00:04,  5.93it/s]
+Capturing CUDA graphs (PIECEWISE):  49%|████▉     | 25/51 [00:05<00:04,  5.97it/s]
+Capturing CUDA graphs (PIECEWISE):  51%|█████     | 26/51 [00:05<00:04,  5.99it/s]
+Capturing CUDA graphs (PIECEWISE):  53%|█████▎    | 27/51 [00:05<00:03,  6.02it/s]
+Capturing CUDA graphs (PIECEWISE):  55%|█████▍    | 28/51 [00:05<00:03,  5.98it/s]
+Capturing CUDA graphs (PIECEWISE):  57%|█████▋    | 29/51 [00:05<00:03,  5.96it/s]
+Capturing CUDA graphs (PIECEWISE):  59%|█████▉    | 30/51 [00:06<00:03,  5.96it/s]
+Capturing CUDA graphs (PIECEWISE):  61%|██████    | 31/51 [00:06<00:03,  5.99it/s]
+Capturing CUDA graphs (PIECEWISE):  63%|██████▎   | 32/51 [00:06<00:03,  6.01it/s]
+Capturing CUDA graphs (PIECEWISE):  65%|██████▍   | 33/51 [00:06<00:02,  6.03it/s]
+Capturing CUDA graphs (PIECEWISE):  67%|██████▋   | 34/51 [00:06<00:02,  6.12it/s]
+Capturing CUDA graphs (PIECEWISE):  69%|██████▊   | 35/51 [00:06<00:02,  6.15it/s]
+Capturing CUDA graphs (PIECEWISE):  71%|███████   | 36/51 [00:07<00:02,  6.22it/s]
+Capturing CUDA graphs (PIECEWISE):  73%|███████▎  | 37/51 [00:07<00:02,  6.31it/s]
+Capturing CUDA graphs (PIECEWISE):  75%|███████▍  | 38/51 [00:07<00:02,  6.35it/s]
+Capturing CUDA graphs (PIECEWISE):  76%|███████▋  | 39/51 [00:07<00:01,  6.44it/s]
+Capturing CUDA graphs (PIECEWISE):  78%|███████▊  | 40/51 [00:07<00:01,  6.51it/s]
+Capturing CUDA graphs (PIECEWISE):  80%|████████  | 41/51 [00:07<00:01,  6.61it/s]
+Capturing CUDA graphs (PIECEWISE):  82%|████████▏ | 42/51 [00:07<00:01,  6.67it/s]
+Capturing CUDA graphs (PIECEWISE):  84%|████████▍ | 43/51 [00:08<00:01,  6.72it/s]
+Capturing CUDA graphs (PIECEWISE):  86%|████████▋ | 44/51 [00:08<00:01,  6.67it/s]
+Capturing CUDA graphs (PIECEWISE):  88%|████████▊ | 45/51 [00:08<00:00,  6.73it/s]
+Capturing CUDA graphs (PIECEWISE):  90%|█████████ | 46/51 [00:08<00:00,  6.70it/s]
+Capturing CUDA graphs (PIECEWISE):  92%|█████████▏| 47/51 [00:08<00:00,  6.54it/s]
+Capturing CUDA graphs (PIECEWISE):  94%|█████████▍| 48/51 [00:08<00:00,  6.56it/s]
+Capturing CUDA graphs (PIECEWISE):  96%|█████████▌| 49/51 [00:09<00:00,  6.51it/s]
+Capturing CUDA graphs (PIECEWISE):  98%|█████████▊| 50/51 [00:09<00:00,  6.63it/s]
+Capturing CUDA graphs (PIECEWISE): 100%|██████████| 51/51 [00:09<00:00,  6.59it/s]
+Capturing CUDA graphs (PIECEWISE): 100%|██████████| 51/51 [00:09<00:00,  5.47it/s]
+
+Capturing CUDA graphs (FULL):   0%|          | 0/2 [00:00<?, ?it/s]
+Capturing CUDA graphs (FULL):  50%|█████     | 1/2 [00:00<00:00,  7.52it/s]
+Capturing CUDA graphs (FULL): 100%|██████████| 2/2 [00:00<00:00,  7.53it/s]
+Capturing CUDA graphs (FULL): 100%|██████████| 2/2 [00:00<00:00,  7.52it/s]
+(Worker_TP0 pid=2930) INFO 11-25 16:29:21 [model_runner.py:1127] Graph capturing finished in 10 secs, took 0.27 GiB
+(Worker_TP1 pid=2931) INFO 11-25 16:29:21 [model_runner.py:1127] Graph capturing finished in 10 secs, took 0.27 GiB
+(Worker_TP0 pid=2930) INFO 11-25 16:29:21 [gpu_worker.py:759] Available KV cache memory: 21.42 GiB
+(Worker_TP0 pid=2930) WARNING 11-25 16:29:21 [gpu_worker.py:791] CUDA graph memory profiling is disabled (VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0). Without it, CUDA graph memory is not accounted for during KV cache allocation, which may require lowering --gpu-memory-utilization to avoid OOM. Consider re-enabling it (the default as of v0.21.0) and increasing --gpu-memory-utilization from 0.8500 to 0.8550.
+(Worker_TP1 pid=2931) WARNING 11-25 16:29:21 [gpu_worker.py:791] CUDA graph memory profiling is disabled (VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0). Without it, CUDA graph memory is not accounted for during KV cache allocation, which may require lowering --gpu-memory-utilization to avoid OOM. Consider re-enabling it (the default as of v0.21.0) and increasing --gpu-memory-utilization from 0.8500 to 0.8549.
+(EngineCore pid=1926) INFO 11-25 16:29:21 [kv_cache_utils.py:2327] GPU KV cache size: 175,440 tokens, Maximum concurrency for 40,960 tokens per request: 4.28x
+(Worker_TP0 pid=2930) INFO 11-25 16:29:21 [factory.py:62] Creating v1 connector with name: LMCacheConnectorV1 and engine_id: 9efd019a-f577-4873-8963-cefbcc7746cc
+(Worker_TP0 pid=2930) WARNING 11-25 16:29:21 [base.py:214] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(Worker_TP0 pid=2930) INFO 11-25 16:29:21 [lmcache_connector.py:100] Initializing latest dev LMCache connector
+(Worker_TP1 pid=2931) INFO 11-25 16:29:21 [factory.py:62] Creating v1 connector with name: LMCacheConnectorV1 and engine_id: 9efd019a-f577-4873-8963-cefbcc7746cc
+(Worker_TP1 pid=2931) WARNING 11-25 16:29:21 [base.py:214] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(Worker_TP1 pid=2931) INFO 11-25 16:29:21 [lmcache_connector.py:100] Initializing latest dev LMCache connector
+[32;20m[2026-11-25 16:29:21,833] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/opt/conda/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-11-25 16:29:21,834] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+[32;20m[2026-11-25 16:29:21,834] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/opt/conda/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-11-25 16:29:21,835] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+[32;20m[2026-11-25 16:29:22,391] LMCache INFO:[0m Discovered API module: env_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,391] LMCache INFO:[0m Discovered API module: env_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,410] LMCache INFO:[0m Discovered API module: loglevel_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,410] LMCache INFO:[0m Discovered API module: loglevel_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,411] LMCache INFO:[0m Discovered API module: metrics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,411] LMCache INFO:[0m Discovered API module: metrics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,413] LMCache INFO:[0m Discovered API module: periodic_thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,413] LMCache INFO:[0m Discovered API module: periodic_thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,415] LMCache INFO:[0m Discovered API module: run_script_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,415] LMCache INFO:[0m Discovered API module: run_script_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,416] LMCache INFO:[0m Discovered API module: thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,416] LMCache INFO:[0m Discovered API module: thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,421] LMCache INFO:[0m Discovered API module: backend_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,421] LMCache INFO:[0m Discovered API module: backend_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,422] LMCache INFO:[0m Discovered API module: bypass_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,422] LMCache INFO:[0m Discovered API module: bypass_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,427] LMCache INFO:[0m Discovered API module: cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,427] LMCache INFO:[0m Discovered API module: cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,433] LMCache INFO:[0m Discovered API module: chunk_statistics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,433] LMCache INFO:[0m Discovered API module: chunk_statistics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,435] LMCache INFO:[0m Discovered API module: conf_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,435] LMCache INFO:[0m Discovered API module: conf_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,436] LMCache INFO:[0m Discovered API module: freeze_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,436] LMCache INFO:[0m Discovered API module: freeze_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,436] LMCache INFO:[0m Discovered API module: hot_cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,437] LMCache INFO:[0m Discovered API module: hot_cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,437] LMCache INFO:[0m Discovered API module: inference_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,438] LMCache INFO:[0m Discovered API module: inference_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,441] LMCache INFO:[0m Discovered API module: load_fs_chunks_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,441] LMCache INFO:[0m Discovered API module: load_fs_chunks_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,442] LMCache INFO:[0m Discovered API module: lookup_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,442] LMCache INFO:[0m Discovered API module: lookup_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,443] LMCache INFO:[0m Discovered API module: version_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,443] LMCache INFO:[0m Discovered API module: version_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,453] LMCache INFO:[0m Discovered API module: key_stats_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,453] LMCache INFO:[0m Discovered API module: key_stats_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,455] LMCache INFO:[0m Discovered API module: worker_info_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,455] LMCache INFO:[0m Discovered API module: worker_info_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,473] LMCache INFO:[0m Loading LMCache config file /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder2.yaml [3m(utils.py:110:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,473] LMCache INFO:[0m Loading LMCache config file /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder2.yaml [3m(utils.py:110:lmcache.integration.vllm.utils)[0m
+[33;20m[2026-11-25 16:29:22,474] LMCache WARNING:[0m PD (Peer-to-Peer Disaggregation) requires save_unfull_chunk=True for complete KV cache transfer. Automatically setting save_unfull_chunk=True. [3m(config.py:765:lmcache.v1.config)[0m
+[32;20m[2026-11-25 16:29:22,474] LMCache INFO:[0m num_layer: 64, chunk_size: 256, num_kv_head (per gpu): 4, head_size: 128, hidden_dim (D) for KV (per gpu): 512, use mla: False, kv shape: (64, 2, 256, 4, 128), num_draft_layers: 0 [3m(vllm_service_factory.py:111:lmcache.integration.vllm.vllm_service_factory)[0m
+[33;20m[2026-11-25 16:29:22,474] LMCache WARNING:[0m PD (Peer-to-Peer Disaggregation) requires save_unfull_chunk=True for complete KV cache transfer. Automatically setting save_unfull_chunk=True. [3m(config.py:765:lmcache.v1.config)[0m
+[31;20m[2026-11-25 16:29:22,474] LMCache ERROR:[0m vLLM is not available but tried to query kv cache layout information, cannot get KV cache layout [3m(utils.py:68:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,474] LMCache INFO:[0m num_layer: 64, chunk_size: 256, num_kv_head (per gpu): 4, head_size: 128, hidden_dim (D) for KV (per gpu): 512, use mla: False, kv shape: (64, 2, 256, 4, 128), num_draft_layers: 0 [3m(vllm_service_factory.py:111:lmcache.integration.vllm.vllm_service_factory)[0m
+[32;20m[2026-11-25 16:29:22,474] LMCache INFO:[0m Creating LMCacheEngine instance vllm-instance [3m(cache_engine.py:2109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,474] LMCache INFO:[0m NUMA mapping for instance vllm-instance: None [3m(cache_engine.py:2112:lmcache.v1.cache_engine)[0m
+[31;20m[2026-11-25 16:29:22,474] LMCache ERROR:[0m vLLM is not available but tried to query kv cache layout information, cannot get KV cache layout [3m(utils.py:68:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,475] LMCache INFO:[0m Creating LMCacheEngine instance vllm-instance [3m(cache_engine.py:2109:lmcache.v1.cache_engine)[0m
+[33;20m[2026-11-25 16:29:22,475] LMCache WARNING:[0m Could not load 'builtin' from vLLM. Using builtin hash. This may cause inconsistencies in distributed caching. [3m(token_database.py:162:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,475] LMCache INFO:[0m NUMA mapping for instance vllm-instance: None [3m(cache_engine.py:2112:lmcache.v1.cache_engine)[0m
+[33;20m[2026-11-25 16:29:22,475] LMCache WARNING:[0m Using builtin hash without PYTHONHASHSEED set. For production environments (non-testing scenarios), you MUST set PYTHONHASHSEED to ensure consistent hashing across processes. Example: export PYTHONHASHSEED=0 [3m(token_database.py:170:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,475] LMCache INFO:[0m Initialized NONE_HASH=991050574883834103 from vLLM (>= PR#20511) [3m(token_database.py:100:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,475] LMCache INFO:[0m Using hash algorithm: builtin [3m(token_database.py:110:lmcache.v1.token_database)[0m
+[31;20m[2026-11-25 16:29:22,475] LMCache ERROR:[0m P/D Disaggregation detected but PYTHONHASHSEED not set. For consistent caching, set: export PYTHONHASHSEED=0 before the engine starts. This will cause incorrect KV cache transfer. [3m(token_database.py:320:lmcache.v1.token_database)[0m
+[33;20m[2026-11-25 16:29:22,475] LMCache WARNING:[0m Could not load 'builtin' from vLLM. Using builtin hash. This may cause inconsistencies in distributed caching. [3m(token_database.py:162:lmcache.v1.token_database)[0m
+[33;20m[2026-11-25 16:29:22,475] LMCache WARNING:[0m Using builtin hash without PYTHONHASHSEED set. For production environments (non-testing scenarios), you MUST set PYTHONHASHSEED to ensure consistent hashing across processes. Example: export PYTHONHASHSEED=0 [3m(token_database.py:170:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,475] LMCache INFO:[0m Initialized NONE_HASH=-8127301997136770016 from vLLM (>= PR#20511) [3m(token_database.py:100:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,475] LMCache INFO:[0m Using hash algorithm: builtin [3m(token_database.py:110:lmcache.v1.token_database)[0m
+[31;20m[2026-11-25 16:29:22,475] LMCache ERROR:[0m P/D Disaggregation detected but PYTHONHASHSEED not set. For consistent caching, set: export PYTHONHASHSEED=0 before the engine starts. This will cause incorrect KV cache transfer. [3m(token_database.py:320:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,477] LMCache INFO:[0m Creating LMCacheEngine with config: {'chunk_size': 256, 'local_cpu': False, 'max_local_cpu_size': 0.0, 'local_cpu_use_hugepages': False, 'reserve_local_cpu_size': 0.0, 'local_disk': None, 'local_disk_path_sharding': 'by_gpu', 'max_local_disk_size': 0.0, 'remote_url': None, 'remote_serde': 'naive', 'use_layerwise': False, 'save_decode_cache': False, 'pre_caching_hash_algorithm': 'builtin', 'enable_blending': False, 'blend_recompute_ratios': None, 'blend_thresholds': None, 'blend_check_layers': None, 'blend_min_tokens': 256, 'blend_special_str': ' # # ', 'retrieve_locations': None, 'store_location': None, 'enable_p2p': False, 'p2p_host': None, 'p2p_init_ports': None, 'p2p_lookup_ports': None, 'mp_host': None, 'mp_port': 5555, 'enable_controller': False, 'lmcache_instance_id': 'lmcacheengineconfig_259fb2d40ad24f7991f45430fd7ae6f9', 'controller_pull_url': None, 'controller_reply_url': None, 'lmcache_worker_ports': None, 'lmcache_worker_ids': None, 'lmcache_worker_heartbeat_delay_time': 10, 'lmcache_worker_heartbeat_time': None, 'enable_pd': True, 'pd_role': 'receiver', 'pd_buffer_size': 3355443200, 'pd_buffer_device': 'cuda', 'pd_peer_host': 'localhost', 'pd_peer_init_port': [7302, 7303], 'pd_peer_alloc_port': [7402, 7403], 'pd_peer_query_port': None, 'pd_proxy_host': None, 'pd_proxy_port': None, 'pd_allocation_timeout_sec': inf, 'pd_shutdown_timeout_sec': 5.0, 'pd_condition_poll_interval_sec': 0.005, 'pd_max_prefill_len': 0, 'pd_backend_mode': 'async', 'pd_skip_proxy_notification': False, 'pd_bidirectional': False, 'transfer_channel': 'nixl', 'nixl_backends': ['UCX'], 'nixl_buffer_size': None, 'nixl_buffer_device': None, 'gds_path': None, 'gds_path_sharding': 'by_gpu', 'gds_buffer_size': None, 'maru_path': None, 'maru_pool_size': 4.0, 'use_gds': True, 'gds_backend': 'cufile', 'audit_actual_remote_url': None, 'internal_api_server_host': '0.0.0.0', 'extra_config': None, 'save_unfull_chunk': True, 'blocking_timeout_secs': 10, 'external_lookup_client': None, 'py_enable_gc': True, 'cache_policy': 'LRU', 'numa_mode': None, 'enable_async_loading': False, 'internal_api_server_enabled': False, 'internal_api_server_port_start': 6999, 'priority_limit': None, 'internal_api_server_include_index_list': None, 'internal_api_server_socket_path_prefix': None, 'runtime_plugin_locations': None, 'storage_plugins': None, 'remote_storage_plugins': None, 'lookup_timeout_ms': 3000, 'min_retrieve_tokens': 0, 'hit_miss_ratio': None, 'lookup_server_worker_ids': None, 'enable_scheduler_bypass_lookup': False, 'script_allowed_imports': None, 'enable_lazy_memory_allocator': False, 'lazy_memory_initial_ratio': 0.2, 'lazy_memory_expand_trigger_ratio': 0.5, 'lazy_memory_step_ratio': 0.1, 'lazy_memory_safe_size': 0.0, 'enable_chunk_statistics': False, 'chunk_statistics_auto_start_statistics': False, 'chunk_statistics_auto_exit_timeout_hours': 0.0, 'chunk_statistics_auto_exit_target_unique_chunks': 0, 'chunk_statistics_strategy': 'memory_bloom_filter', 'enable_kv_events': False, 'use_gpu_connector_v3': False, 'pin_timeout_sec': 300, 'pin_check_interval_sec': 30, 'remote_config_url': None, 'app_id': None, 'enable_hidden_state_cache': False, 'max_hidden_state_cpu_size': 2.0, 'hidden_state_layers': None, 'hidden_states_retrieve_mode': 'prefix_strict'} [3m(cache_engine.py:109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,478] LMCache INFO:[0m Creating LMCacheEngine with config: {'chunk_size': 256, 'local_cpu': False, 'max_local_cpu_size': 0.0, 'local_cpu_use_hugepages': False, 'reserve_local_cpu_size': 0.0, 'local_disk': None, 'local_disk_path_sharding': 'by_gpu', 'max_local_disk_size': 0.0, 'remote_url': None, 'remote_serde': 'naive', 'use_layerwise': False, 'save_decode_cache': False, 'pre_caching_hash_algorithm': 'builtin', 'enable_blending': False, 'blend_recompute_ratios': None, 'blend_thresholds': None, 'blend_check_layers': None, 'blend_min_tokens': 256, 'blend_special_str': ' # # ', 'retrieve_locations': None, 'store_location': None, 'enable_p2p': False, 'p2p_host': None, 'p2p_init_ports': None, 'p2p_lookup_ports': None, 'mp_host': None, 'mp_port': 5555, 'enable_controller': False, 'lmcache_instance_id': 'lmcacheengineconfig_ead1afaad8c54ce0b11f6a05ea314369', 'controller_pull_url': None, 'controller_reply_url': None, 'lmcache_worker_ports': None, 'lmcache_worker_ids': None, 'lmcache_worker_heartbeat_delay_time': 10, 'lmcache_worker_heartbeat_time': None, 'enable_pd': True, 'pd_role': 'receiver', 'pd_buffer_size': 3355443200, 'pd_buffer_device': 'cuda', 'pd_peer_host': 'localhost', 'pd_peer_init_port': [7302, 7303], 'pd_peer_alloc_port': [7402, 7403], 'pd_peer_query_port': None, 'pd_proxy_host': None, 'pd_proxy_port': None, 'pd_allocation_timeout_sec': inf, 'pd_shutdown_timeout_sec': 5.0, 'pd_condition_poll_interval_sec': 0.005, 'pd_max_prefill_len': 0, 'pd_backend_mode': 'async', 'pd_skip_proxy_notification': False, 'pd_bidirectional': False, 'transfer_channel': 'nixl', 'nixl_backends': ['UCX'], 'nixl_buffer_size': None, 'nixl_buffer_device': None, 'gds_path': None, 'gds_path_sharding': 'by_gpu', 'gds_buffer_size': None, 'maru_path': None, 'maru_pool_size': 4.0, 'use_gds': True, 'gds_backend': 'cufile', 'audit_actual_remote_url': None, 'internal_api_server_host': '0.0.0.0', 'extra_config': None, 'save_unfull_chunk': True, 'blocking_timeout_secs': 10, 'external_lookup_client': None, 'py_enable_gc': True, 'cache_policy': 'LRU', 'numa_mode': None, 'enable_async_loading': False, 'internal_api_server_enabled': False, 'internal_api_server_port_start': 6999, 'priority_limit': None, 'internal_api_server_include_index_list': None, 'internal_api_server_socket_path_prefix': None, 'runtime_plugin_locations': None, 'storage_plugins': None, 'remote_storage_plugins': None, 'lookup_timeout_ms': 3000, 'min_retrieve_tokens': 0, 'hit_miss_ratio': None, 'lookup_server_worker_ids': None, 'enable_scheduler_bypass_lookup': False, 'script_allowed_imports': None, 'enable_lazy_memory_allocator': False, 'lazy_memory_initial_ratio': 0.2, 'lazy_memory_expand_trigger_ratio': 0.5, 'lazy_memory_step_ratio': 0.1, 'lazy_memory_safe_size': 0.0, 'enable_chunk_statistics': False, 'chunk_statistics_auto_start_statistics': False, 'chunk_statistics_auto_exit_timeout_hours': 0.0, 'chunk_statistics_auto_exit_target_unique_chunks': 0, 'chunk_statistics_strategy': 'memory_bloom_filter', 'enable_kv_events': False, 'use_gpu_connector_v3': False, 'pin_timeout_sec': 300, 'pin_check_interval_sec': 30, 'remote_config_url': None, 'app_id': None, 'enable_hidden_state_cache': False, 'max_hidden_state_cpu_size': 2.0, 'hidden_state_layers': None, 'hidden_states_retrieve_mode': 'prefix_strict'} [3m(cache_engine.py:109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,478] LMCache INFO:[0m LMCacheWorker is not initialized (related configs: enable_controller: False, role: worker, worker_id: 1, worker_ids: [0, 1]). [3m(cache_engine.py:159:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,478] LMCache INFO:[0m KV events are disabled. [3m(cache_engine.py:188:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,478] LMCache INFO:[0m LMCacheWorker is not initialized (related configs: enable_controller: False, role: worker, worker_id: 0, worker_ids: [0, 1]). [3m(cache_engine.py:159:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,478] LMCache INFO:[0m Initializing usage context. [3m(context.py:171:lmcache.usage_telemetry.context)[0m
+[32;20m[2026-11-25 16:29:22,478] LMCache INFO:[0m KV events are disabled. [3m(cache_engine.py:188:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,478] LMCache INFO:[0m Initializing usage context. [3m(context.py:171:lmcache.usage_telemetry.context)[0m
+[32;20m[2026-11-25 16:29:22,479] LMCache INFO:[0m PeriodicThread PinMonitor-thread entering main loop (interval=30.0s) [3m(periodic_thread.py:304:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,480] LMCache INFO:[0m Started PeriodicThread: PinMonitor-thread (level=critical, interval=30.0s, init_wait=0.0s) [3m(periodic_thread.py:248:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,480] LMCache INFO:[0m PinMonitor started [3m(pin_monitor.py:223:lmcache.v1.pin_monitor)[0m
+[32;20m[2026-11-25 16:29:22,480] LMCache INFO:[0m PeriodicThread PinMonitor-thread entering main loop (interval=30.0s) [3m(periodic_thread.py:304:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,480] LMCache INFO:[0m Started PeriodicThread: PinMonitor-thread (level=critical, interval=30.0s, init_wait=0.0s) [3m(periodic_thread.py:248:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,480] LMCache INFO:[0m PinMonitor started [3m(pin_monitor.py:223:lmcache.v1.pin_monitor)[0m
+[32;20m[2026-11-25 16:29:22,848] LMCache INFO:[0m lmcache lookup server started [3m(lmcache_lookup_client.py:270:lmcache.v1.lookup_client.lmcache_lookup_client)[0m
+[32;20m[2026-11-25 16:29:22,849] LMCache INFO:[0m Internal API server disabled. internal_api_server_enabled=False, port_offset=2, port=7001, socket_path=None, include_index_list=None [3m(api_server.py:67:lmcache.v1.internal_api_server.api_server)[0m
+[32;20m[2026-11-25 16:29:22,849] LMCache INFO:[0m LMCache initialized for role KVConnectorRole.WORKER with version NA-NA, vllm version 0.32.0, lmcache cache_engine metadata: LMCacheMetadata(model_name='/mxstorage/pde_ai/models/llm/Qwen/Qwen3-32B/', world_size=2, local_world_size=2, worker_id=1, local_worker_id=1, kv_dtype=torch.bfloat16, kv_shape=(64, 2, 256, 4, 128), use_mla=False, role='worker', served_model_name='qwen2.5', chunk_size=256, kv_layer_groups_manager=None, engine_id='9efd019a-f577-4873-8963-cefbcc7746cc', kv_connector_extra_config={'discard_partial_chunks': False, 'lmcache_rpc_port': 'consumer2', 'skip_last_n_tokens': 1}) [3m(vllm_v1_adapter.py:492:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:22,854] LMCache INFO:[0m Registering KV caches [3m(vllm_v1_adapter.py:755:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:22,854] LMCache INFO:[0m Post initializing LMCacheEngine [3m(cache_engine.py:303:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,854] LMCache INFO:[0m Initialize storage manager on rank 1, use layerwise: False,save only first rank: False [3m(cache_engine.py:315:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,857] LMCache INFO:[0m Setting cuda device to cuda:1  [3m(pd_backend_async.py:445:lmcache.v1.storage_backend.pd_backend_async)[0m
+[32;20m[2026-11-25 16:29:22,858] LMCache INFO:[0m Paged tensor memory allocator initialized, shapes: [torch.Size([64, 2, 256, 4, 128])], dtypes: [torch.bfloat16], align bytes: 33554432 [3m(paged_tensor_memory_allocator.py:108:lmcache.v1.memory_management)[0m
+[32;20m[2026-11-25 16:29:22,863] LMCache INFO:[0m lmcache lookup server started [3m(lmcache_lookup_client.py:270:lmcache.v1.lookup_client.lmcache_lookup_client)[0m
+[32;20m[2026-11-25 16:29:22,864] LMCache INFO:[0m Internal API server disabled. internal_api_server_enabled=False, port_offset=1, port=7000, socket_path=None, include_index_list=None [3m(api_server.py:67:lmcache.v1.internal_api_server.api_server)[0m
+[32;20m[2026-11-25 16:29:22,864] LMCache INFO:[0m LMCache initialized for role KVConnectorRole.WORKER with version NA-NA, vllm version 0.32.0, lmcache cache_engine metadata: LMCacheMetadata(model_name='/mxstorage/pde_ai/models/llm/Qwen/Qwen3-32B/', world_size=2, local_world_size=2, worker_id=0, local_worker_id=0, kv_dtype=torch.bfloat16, kv_shape=(64, 2, 256, 4, 128), use_mla=False, role='worker', served_model_name='qwen2.5', chunk_size=256, kv_layer_groups_manager=None, engine_id='9efd019a-f577-4873-8963-cefbcc7746cc', kv_connector_extra_config={'discard_partial_chunks': False, 'lmcache_rpc_port': 'consumer2', 'skip_last_n_tokens': 1}) [3m(vllm_v1_adapter.py:492:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:22,868] LMCache INFO:[0m Registering KV caches [3m(vllm_v1_adapter.py:755:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:22,868] LMCache INFO:[0m Post initializing LMCacheEngine [3m(cache_engine.py:303:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,868] LMCache INFO:[0m Initialize storage manager on rank 0, use layerwise: False,save only first rank: False [3m(cache_engine.py:315:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,871] LMCache INFO:[0m Setting cuda device to cuda:0  [3m(pd_backend_async.py:445:lmcache.v1.storage_backend.pd_backend_async)[0m
+[32;20m[2026-11-25 16:29:22,872] LMCache INFO:[0m Paged tensor memory allocator initialized, shapes: [torch.Size([64, 2, 256, 4, 128])], dtypes: [torch.bfloat16], align bytes: 33554432 [3m(paged_tensor_memory_allocator.py:108:lmcache.v1.memory_management)[0m
+(EngineCore pid=1926) INFO 11-25 16:30:22 [shm_broadcast.py:871] No available shared memory broadcast block found in 60 seconds. This typically happens when some processes are hanging or doing some time-consuming work (e.g. compilation, weight/kv cache quantization).
+(EngineCore pid=1926) INFO 11-25 16:31:22 [shm_broadcast.py:871] No available shared memory broadcast block found in 60 seconds. This typically happens when some processes are hanging or doing some time-consuming work (e.g. compilation, weight/kv cache quantization).
+
+--- prefiller: /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/prefiller.log ---
+
+Loading safetensors checkpoint shards:  82% Completed | 14/17 [00:37<00:08,  2.71s/it]
+
+Loading safetensors checkpoint shards:  88% Completed | 15/17 [00:40<00:05,  2.75s/it]
+
+Loading safetensors checkpoint shards:  94% Completed | 16/17 [00:43<00:02,  2.74s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 17/17 [00:45<00:00,  2.56s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 17/17 [00:45<00:00,  2.67s/it]
+
+(Worker_TP0 pid=2796) INFO 11-25 16:28:39 [default_loader.py:501] Loading weights took 45.53 seconds
+(Worker_TP0 pid=2796) INFO 11-25 16:28:40 [model_runner.py:424] Model loading took 30.59 GiB memory and 47.390857 seconds
+(Worker_TP0 pid=2796) INFO 11-25 16:28:40 [torch_utils.py:295] Reducing Torch threads from 64 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+(Worker_TP1 pid=2797) INFO 11-25 16:28:40 [model_runner.py:424] Model loading took 30.59 GiB memory and 47.631596 seconds
+(EngineCore pid=1912) INFO 11-25 16:28:40 [torch_utils.py:295] Reducing Torch threads from 64 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+(EngineCore pid=1912) INFO 11-25 16:28:40 [utils.py:347] Using LBNHC KV cache layout.
+(Worker_TP1 pid=2797) INFO 11-25 16:28:40 [monitor.py:40] [backbone] Starting torch.compile
+(Worker_TP0 pid=2796) INFO 11-25 16:28:40 [monitor.py:40] [backbone] Starting torch.compile
+(Worker_TP0 pid=2796) INFO 11-25 16:28:53 [backends.py:1104] [backbone] Using cache directory: /root/.cache/vllm/torch_compile_cache/a1dfa77ff2/rank_0_0/backbone for vLLM's torch.compile
+(Worker_TP0 pid=2796) INFO 11-25 16:28:53 [backends.py:1166] [backbone] Dynamo bytecode transform time: 12.96 s
+(Worker_TP1 pid=2797) INFO 11-25 16:28:53 [backends.py:1104] [backbone] Using cache directory: /root/.cache/vllm/torch_compile_cache/a1dfa77ff2/rank_1_0/backbone for vLLM's torch.compile
+(Worker_TP1 pid=2797) INFO 11-25 16:28:53 [backends.py:1166] [backbone] Dynamo bytecode transform time: 13.02 s
+(Worker_TP1 pid=2797) INFO 11-25 16:29:00 [backends.py:382] [backbone] Cache the graph of compile range (1, 2048) for later use
+(Worker_TP0 pid=2796) INFO 11-25 16:29:00 [backends.py:382] [backbone] Cache the graph of compile range (1, 2048) for later use
+(Worker_TP1 pid=2797) INFO 11-25 16:29:04 [backends.py:398] [backbone] Compiling a graph for compile range (1, 2048) takes 9.04 s
+(Worker_TP0 pid=2796) INFO 11-25 16:29:04 [backends.py:398] [backbone] Compiling a graph for compile range (1, 2048) takes 9.18 s
+(Worker_TP1 pid=2797) INFO 11-25 16:29:07 [decorators.py:743] [backbone] saved AOT compiled function to /root/.cache/vllm/torch_compile_cache/torch_aot_compile/61a32f2b96d8744a51d59c3d704bc9113af29459057f745cef09b5819ef85288/rank_1_0/model
+(Worker_TP1 pid=2797) INFO 11-25 16:29:07 [monitor.py:62] [backbone] torch.compile took 26.61 s in total
+(Worker_TP0 pid=2796) INFO 11-25 16:29:07 [decorators.py:743] [backbone] saved AOT compiled function to /root/.cache/vllm/torch_compile_cache/torch_aot_compile/61a32f2b96d8744a51d59c3d704bc9113af29459057f745cef09b5819ef85288/rank_0_0/model
+(Worker_TP0 pid=2796) INFO 11-25 16:29:07 [monitor.py:62] [backbone] torch.compile took 26.59 s in total
+(Worker_TP1 pid=2797) INFO 11-25 16:29:08 [monitor.py:91] [backbone] Initial profiling/warmup run took 0.73 s
+(Worker_TP0 pid=2796) INFO 11-25 16:29:08 [monitor.py:91] [backbone] Initial profiling/warmup run took 0.69 s
+
+Capturing CUDA graphs (PIECEWISE):   0%|          | 0/51 [00:00<?, ?it/s]
+Capturing CUDA graphs (PIECEWISE):   2%|▏         | 1/51 [00:00<00:14,  3.51it/s]
+Capturing CUDA graphs (PIECEWISE):   4%|▍         | 2/51 [00:00<00:12,  3.88it/s]
+Capturing CUDA graphs (PIECEWISE):   6%|▌         | 3/51 [00:00<00:11,  4.05it/s]
+Capturing CUDA graphs (PIECEWISE):   8%|▊         | 4/51 [00:00<00:11,  4.14it/s]
+Capturing CUDA graphs (PIECEWISE):  10%|▉         | 5/51 [00:01<00:10,  4.19it/s]
+Capturing CUDA graphs (PIECEWISE):  12%|█▏        | 6/51 [00:01<00:10,  4.21it/s]
+Capturing CUDA graphs (PIECEWISE):  14%|█▎        | 7/51 [00:01<00:10,  4.23it/s]
+Capturing CUDA graphs (PIECEWISE):  16%|█▌        | 8/51 [00:01<00:10,  4.24it/s]
+Capturing CUDA graphs (PIECEWISE):  18%|█▊        | 9/51 [00:02<00:10,  4.18it/s]
+Capturing CUDA graphs (PIECEWISE):  20%|█▉        | 10/51 [00:02<00:09,  4.20it/s]
+Capturing CUDA graphs (PIECEWISE):  22%|██▏       | 11/51 [00:02<00:09,  4.20it/s]
+Capturing CUDA graphs (PIECEWISE):  24%|██▎       | 12/51 [00:02<00:09,  4.22it/s]
+Capturing CUDA graphs (PIECEWISE):  25%|██▌       | 13/51 [00:03<00:08,  4.23it/s]
+Capturing CUDA graphs (PIECEWISE):  27%|██▋       | 14/51 [00:03<00:08,  4.27it/s]
+Capturing CUDA graphs (PIECEWISE):  29%|██▉       | 15/51 [00:03<00:08,  4.29it/s]
+Capturing CUDA graphs (PIECEWISE):  31%|███▏      | 16/51 [00:03<00:08,  4.37it/s]
+Capturing CUDA graphs (PIECEWISE):  33%|███▎      | 17/51 [00:03<00:07,  4.77it/s]
+Capturing CUDA graphs (PIECEWISE):  35%|███▌      | 18/51 [00:04<00:06,  5.08it/s]
+Capturing CUDA graphs (PIECEWISE):  37%|███▋      | 19/51 [00:04<00:05,  5.33it/s]
+Capturing CUDA graphs (PIECEWISE):  39%|███▉      | 20/51 [00:04<00:05,  5.53it/s]
+Capturing CUDA graphs (PIECEWISE):  41%|████      | 21/51 [00:04<00:05,  5.68it/s]
+Capturing CUDA graphs (PIECEWISE):  43%|████▎     | 22/51 [00:04<00:05,  5.79it/s]
+Capturing CUDA graphs (PIECEWISE):  45%|████▌     | 23/51 [00:04<00:04,  5.88it/s]
+Capturing CUDA graphs (PIECEWISE):  47%|████▋     | 24/51 [00:05<00:04,  5.93it/s]
+Capturing CUDA graphs (PIECEWISE):  49%|████▉     | 25/51 [00:05<00:04,  5.97it/s]
+Capturing CUDA graphs (PIECEWISE):  51%|█████     | 26/51 [00:05<00:04,  5.95it/s]
+Capturing CUDA graphs (PIECEWISE):  53%|█████▎    | 27/51 [00:05<00:04,  5.96it/s]
+Capturing CUDA graphs (PIECEWISE):  55%|█████▍    | 28/51 [00:05<00:03,  5.91it/s]
+Capturing CUDA graphs (PIECEWISE):  57%|█████▋    | 29/51 [00:05<00:03,  5.88it/s]
+Capturing CUDA graphs (PIECEWISE):  59%|█████▉    | 30/51 [00:06<00:03,  5.91it/s]
+Capturing CUDA graphs (PIECEWISE):  61%|██████    | 31/51 [00:06<00:03,  5.96it/s]
+Capturing CUDA graphs (PIECEWISE):  63%|██████▎   | 32/51 [00:06<00:03,  5.98it/s]
+Capturing CUDA graphs (PIECEWISE):  65%|██████▍   | 33/51 [00:06<00:02,  6.01it/s]
+Capturing CUDA graphs (PIECEWISE):  67%|██████▋   | 34/51 [00:06<00:02,  6.12it/s]
+Capturing CUDA graphs (PIECEWISE):  69%|██████▊   | 35/51 [00:06<00:02,  6.19it/s]
+Capturing CUDA graphs (PIECEWISE):  71%|███████   | 36/51 [00:07<00:02,  6.26it/s]
+Capturing CUDA graphs (PIECEWISE):  73%|███████▎  | 37/51 [00:07<00:02,  6.32it/s]
+Capturing CUDA graphs (PIECEWISE):  75%|███████▍  | 38/51 [00:07<00:02,  6.38it/s]
+Capturing CUDA graphs (PIECEWISE):  76%|███████▋  | 39/51 [00:07<00:01,  6.50it/s]
+Capturing CUDA graphs (PIECEWISE):  78%|███████▊  | 40/51 [00:07<00:01,  6.59it/s]
+Capturing CUDA graphs (PIECEWISE):  80%|████████  | 41/51 [00:07<00:01,  6.72it/s]
+Capturing CUDA graphs (PIECEWISE):  82%|████████▏ | 42/51 [00:07<00:01,  6.79it/s]
+Capturing CUDA graphs (PIECEWISE):  84%|████████▍ | 43/51 [00:08<00:01,  6.79it/s]
+Capturing CUDA graphs (PIECEWISE):  86%|████████▋ | 44/51 [00:08<00:01,  6.75it/s]
+Capturing CUDA graphs (PIECEWISE):  88%|████████▊ | 45/51 [00:08<00:00,  6.84it/s]
+Capturing CUDA graphs (PIECEWISE):  90%|█████████ | 46/51 [00:08<00:00,  6.80it/s]
+Capturing CUDA graphs (PIECEWISE):  92%|█████████▏| 47/51 [00:08<00:00,  6.62it/s]
+Capturing CUDA graphs (PIECEWISE):  94%|█████████▍| 48/51 [00:08<00:00,  6.65it/s]
+Capturing CUDA graphs (PIECEWISE):  96%|█████████▌| 49/51 [00:09<00:00,  6.60it/s]
+Capturing CUDA graphs (PIECEWISE):  98%|█████████▊| 50/51 [00:09<00:00,  6.62it/s]
+Capturing CUDA graphs (PIECEWISE): 100%|██████████| 51/51 [00:09<00:00,  6.57it/s]
+Capturing CUDA graphs (PIECEWISE): 100%|██████████| 51/51 [00:09<00:00,  5.46it/s]
+
+Capturing CUDA graphs (FULL):   0%|          | 0/2 [00:00<?, ?it/s]
+Capturing CUDA graphs (FULL):  50%|█████     | 1/2 [00:00<00:00,  7.54it/s]
+Capturing CUDA graphs (FULL): 100%|██████████| 2/2 [00:00<00:00,  7.53it/s]
+Capturing CUDA graphs (FULL): 100%|██████████| 2/2 [00:00<00:00,  7.53it/s]
+(Worker_TP1 pid=2797) INFO 11-25 16:29:21 [model_runner.py:1127] Graph capturing finished in 10 secs, took 0.27 GiB
+(Worker_TP0 pid=2796) INFO 11-25 16:29:21 [model_runner.py:1127] Graph capturing finished in 11 secs, took 0.27 GiB
+(Worker_TP1 pid=2797) WARNING 11-25 16:29:22 [gpu_worker.py:791] CUDA graph memory profiling is disabled (VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0). Without it, CUDA graph memory is not accounted for during KV cache allocation, which may require lowering --gpu-memory-utilization to avoid OOM. Consider re-enabling it (the default as of v0.21.0) and increasing --gpu-memory-utilization from 0.8500 to 0.8549.
+(Worker_TP0 pid=2796) INFO 11-25 16:29:22 [gpu_worker.py:759] Available KV cache memory: 21.42 GiB
+(Worker_TP0 pid=2796) WARNING 11-25 16:29:22 [gpu_worker.py:791] CUDA graph memory profiling is disabled (VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0). Without it, CUDA graph memory is not accounted for during KV cache allocation, which may require lowering --gpu-memory-utilization to avoid OOM. Consider re-enabling it (the default as of v0.21.0) and increasing --gpu-memory-utilization from 0.8500 to 0.8550.
+(EngineCore pid=1912) INFO 11-25 16:29:22 [kv_cache_utils.py:2327] GPU KV cache size: 175,440 tokens, Maximum concurrency for 40,960 tokens per request: 4.28x
+(Worker_TP0 pid=2796) INFO 11-25 16:29:22 [factory.py:62] Creating v1 connector with name: LMCacheConnectorV1 and engine_id: 53cb692e-5593-478a-be3e-f3c98d12ffa6
+(Worker_TP0 pid=2796) WARNING 11-25 16:29:22 [base.py:214] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(Worker_TP1 pid=2797) INFO 11-25 16:29:22 [factory.py:62] Creating v1 connector with name: LMCacheConnectorV1 and engine_id: 53cb692e-5593-478a-be3e-f3c98d12ffa6
+(Worker_TP0 pid=2796) INFO 11-25 16:29:22 [lmcache_connector.py:100] Initializing latest dev LMCache connector
+(Worker_TP1 pid=2797) WARNING 11-25 16:29:22 [base.py:214] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(Worker_TP1 pid=2797) INFO 11-25 16:29:22 [lmcache_connector.py:100] Initializing latest dev LMCache connector
+[32;20m[2026-11-25 16:29:22,217] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/opt/conda/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-11-25 16:29:22,217] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/opt/conda/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-11-25 16:29:22,218] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+[32;20m[2026-11-25 16:29:22,218] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+[32;20m[2026-11-25 16:29:22,742] LMCache INFO:[0m Discovered API module: env_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,742] LMCache INFO:[0m Discovered API module: env_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,761] LMCache INFO:[0m Discovered API module: loglevel_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,761] LMCache INFO:[0m Discovered API module: loglevel_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,761] LMCache INFO:[0m Discovered API module: metrics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,762] LMCache INFO:[0m Discovered API module: metrics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,764] LMCache INFO:[0m Discovered API module: periodic_thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,764] LMCache INFO:[0m Discovered API module: periodic_thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,765] LMCache INFO:[0m Discovered API module: run_script_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,766] LMCache INFO:[0m Discovered API module: run_script_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,767] LMCache INFO:[0m Discovered API module: thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,767] LMCache INFO:[0m Discovered API module: thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,772] LMCache INFO:[0m Discovered API module: backend_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,772] LMCache INFO:[0m Discovered API module: bypass_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,772] LMCache INFO:[0m Discovered API module: backend_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,773] LMCache INFO:[0m Discovered API module: bypass_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,777] LMCache INFO:[0m Discovered API module: cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,778] LMCache INFO:[0m Discovered API module: cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,783] LMCache INFO:[0m Discovered API module: chunk_statistics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,784] LMCache INFO:[0m Discovered API module: chunk_statistics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,785] LMCache INFO:[0m Discovered API module: conf_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,786] LMCache INFO:[0m Discovered API module: freeze_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,786] LMCache INFO:[0m Discovered API module: conf_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,787] LMCache INFO:[0m Discovered API module: hot_cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,787] LMCache INFO:[0m Discovered API module: freeze_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,787] LMCache INFO:[0m Discovered API module: hot_cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,787] LMCache INFO:[0m Discovered API module: inference_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,788] LMCache INFO:[0m Discovered API module: inference_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,791] LMCache INFO:[0m Discovered API module: load_fs_chunks_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,792] LMCache INFO:[0m Discovered API module: load_fs_chunks_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,792] LMCache INFO:[0m Discovered API module: lookup_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,793] LMCache INFO:[0m Discovered API module: version_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,793] LMCache INFO:[0m Discovered API module: lookup_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,794] LMCache INFO:[0m Discovered API module: version_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,803] LMCache INFO:[0m Discovered API module: key_stats_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,804] LMCache INFO:[0m Discovered API module: key_stats_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,805] LMCache INFO:[0m Discovered API module: worker_info_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,806] LMCache INFO:[0m Discovered API module: worker_info_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+[32;20m[2026-11-25 16:29:22,822] LMCache INFO:[0m Loading LMCache config file /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/prefiller.yaml [3m(utils.py:110:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,824] LMCache INFO:[0m Loading LMCache config file /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/prefiller.yaml [3m(utils.py:110:lmcache.integration.vllm.utils)[0m
+[33;20m[2026-11-25 16:29:22,824] LMCache WARNING:[0m PD (Peer-to-Peer Disaggregation) requires save_unfull_chunk=True for complete KV cache transfer. Automatically setting save_unfull_chunk=True. [3m(config.py:765:lmcache.v1.config)[0m
+[32;20m[2026-11-25 16:29:22,824] LMCache INFO:[0m num_layer: 64, chunk_size: 256, num_kv_head (per gpu): 4, head_size: 128, hidden_dim (D) for KV (per gpu): 512, use mla: False, kv shape: (64, 2, 256, 4, 128), num_draft_layers: 0 [3m(vllm_service_factory.py:111:lmcache.integration.vllm.vllm_service_factory)[0m
+[31;20m[2026-11-25 16:29:22,824] LMCache ERROR:[0m vLLM is not available but tried to query kv cache layout information, cannot get KV cache layout [3m(utils.py:68:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,824] LMCache INFO:[0m Creating LMCacheEngine instance vllm-instance [3m(cache_engine.py:2109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,824] LMCache INFO:[0m NUMA mapping for instance vllm-instance: None [3m(cache_engine.py:2112:lmcache.v1.cache_engine)[0m
+[33;20m[2026-11-25 16:29:22,824] LMCache WARNING:[0m Could not load 'builtin' from vLLM. Using builtin hash. This may cause inconsistencies in distributed caching. [3m(token_database.py:162:lmcache.v1.token_database)[0m
+[33;20m[2026-11-25 16:29:22,825] LMCache WARNING:[0m Using builtin hash without PYTHONHASHSEED set. For production environments (non-testing scenarios), you MUST set PYTHONHASHSEED to ensure consistent hashing across processes. Example: export PYTHONHASHSEED=0 [3m(token_database.py:170:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,825] LMCache INFO:[0m Initialized NONE_HASH=3538391838651620165 from vLLM (>= PR#20511) [3m(token_database.py:100:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,825] LMCache INFO:[0m Using hash algorithm: builtin [3m(token_database.py:110:lmcache.v1.token_database)[0m
+[31;20m[2026-11-25 16:29:22,825] LMCache ERROR:[0m P/D Disaggregation detected but PYTHONHASHSEED not set. For consistent caching, set: export PYTHONHASHSEED=0 before the engine starts. This will cause incorrect KV cache transfer. [3m(token_database.py:320:lmcache.v1.token_database)[0m
+[33;20m[2026-11-25 16:29:22,825] LMCache WARNING:[0m PD (Peer-to-Peer Disaggregation) requires save_unfull_chunk=True for complete KV cache transfer. Automatically setting save_unfull_chunk=True. [3m(config.py:765:lmcache.v1.config)[0m
+[32;20m[2026-11-25 16:29:22,825] LMCache INFO:[0m num_layer: 64, chunk_size: 256, num_kv_head (per gpu): 4, head_size: 128, hidden_dim (D) for KV (per gpu): 512, use mla: False, kv shape: (64, 2, 256, 4, 128), num_draft_layers: 0 [3m(vllm_service_factory.py:111:lmcache.integration.vllm.vllm_service_factory)[0m
+[31;20m[2026-11-25 16:29:22,825] LMCache ERROR:[0m vLLM is not available but tried to query kv cache layout information, cannot get KV cache layout [3m(utils.py:68:lmcache.integration.vllm.utils)[0m
+[32;20m[2026-11-25 16:29:22,826] LMCache INFO:[0m Creating LMCacheEngine instance vllm-instance [3m(cache_engine.py:2109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,826] LMCache INFO:[0m NUMA mapping for instance vllm-instance: None [3m(cache_engine.py:2112:lmcache.v1.cache_engine)[0m
+[33;20m[2026-11-25 16:29:22,826] LMCache WARNING:[0m Could not load 'builtin' from vLLM. Using builtin hash. This may cause inconsistencies in distributed caching. [3m(token_database.py:162:lmcache.v1.token_database)[0m
+[33;20m[2026-11-25 16:29:22,826] LMCache WARNING:[0m Using builtin hash without PYTHONHASHSEED set. For production environments (non-testing scenarios), you MUST set PYTHONHASHSEED to ensure consistent hashing across processes. Example: export PYTHONHASHSEED=0 [3m(token_database.py:170:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,826] LMCache INFO:[0m Initialized NONE_HASH=-8812179058197625959 from vLLM (>= PR#20511) [3m(token_database.py:100:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,826] LMCache INFO:[0m Using hash algorithm: builtin [3m(token_database.py:110:lmcache.v1.token_database)[0m
+[31;20m[2026-11-25 16:29:22,826] LMCache ERROR:[0m P/D Disaggregation detected but PYTHONHASHSEED not set. For consistent caching, set: export PYTHONHASHSEED=0 before the engine starts. This will cause incorrect KV cache transfer. [3m(token_database.py:320:lmcache.v1.token_database)[0m
+[32;20m[2026-11-25 16:29:22,827] LMCache INFO:[0m Creating LMCacheEngine with config: {'chunk_size': 256, 'local_cpu': False, 'max_local_cpu_size': 0.0, 'local_cpu_use_hugepages': False, 'reserve_local_cpu_size': 0.0, 'local_disk': None, 'local_disk_path_sharding': 'by_gpu', 'max_local_disk_size': 0.0, 'remote_url': None, 'remote_serde': 'naive', 'use_layerwise': False, 'save_decode_cache': False, 'pre_caching_hash_algorithm': 'builtin', 'enable_blending': False, 'blend_recompute_ratios': None, 'blend_thresholds': None, 'blend_check_layers': None, 'blend_min_tokens': 256, 'blend_special_str': ' # # ', 'retrieve_locations': None, 'store_location': None, 'enable_p2p': False, 'p2p_host': None, 'p2p_init_ports': None, 'p2p_lookup_ports': None, 'mp_host': None, 'mp_port': 5555, 'enable_controller': False, 'lmcache_instance_id': 'lmcacheengineconfig_3ca4de2e2f994940b16d08c70a014971', 'controller_pull_url': None, 'controller_reply_url': None, 'lmcache_worker_ports': None, 'lmcache_worker_ids': None, 'lmcache_worker_heartbeat_delay_time': 10, 'lmcache_worker_heartbeat_time': None, 'enable_pd': True, 'pd_role': 'sender', 'pd_buffer_size': 3355443200, 'pd_buffer_device': 'cuda', 'pd_peer_host': None, 'pd_peer_init_port': None, 'pd_peer_alloc_port': None, 'pd_peer_query_port': None, 'pd_proxy_host': 'localhost', 'pd_proxy_port': 7500, 'pd_allocation_timeout_sec': inf, 'pd_shutdown_timeout_sec': 5.0, 'pd_condition_poll_interval_sec': 0.005, 'pd_max_prefill_len': 0, 'pd_backend_mode': 'async', 'pd_skip_proxy_notification': False, 'pd_bidirectional': False, 'transfer_channel': 'nixl', 'nixl_backends': ['UCX'], 'nixl_buffer_size': None, 'nixl_buffer_device': None, 'gds_path': None, 'gds_path_sharding': 'by_gpu', 'gds_buffer_size': None, 'maru_path': None, 'maru_pool_size': 4.0, 'use_gds': True, 'gds_backend': 'cufile', 'audit_actual_remote_url': None, 'internal_api_server_host': '0.0.0.0', 'extra_config': None, 'save_unfull_chunk': True, 'blocking_timeout_secs': 10, 'external_lookup_client': None, 'py_enable_gc': True, 'cache_policy': 'LRU', 'numa_mode': None, 'enable_async_loading': False, 'internal_api_server_enabled': False, 'internal_api_server_port_start': 6999, 'priority_limit': None, 'internal_api_server_include_index_list': None, 'internal_api_server_socket_path_prefix': None, 'runtime_plugin_locations': None, 'storage_plugins': None, 'remote_storage_plugins': None, 'lookup_timeout_ms': 3000, 'min_retrieve_tokens': 0, 'hit_miss_ratio': None, 'lookup_server_worker_ids': None, 'enable_scheduler_bypass_lookup': False, 'script_allowed_imports': None, 'enable_lazy_memory_allocator': False, 'lazy_memory_initial_ratio': 0.2, 'lazy_memory_expand_trigger_ratio': 0.5, 'lazy_memory_step_ratio': 0.1, 'lazy_memory_safe_size': 0.0, 'enable_chunk_statistics': False, 'chunk_statistics_auto_start_statistics': False, 'chunk_statistics_auto_exit_timeout_hours': 0.0, 'chunk_statistics_auto_exit_target_unique_chunks': 0, 'chunk_statistics_strategy': 'memory_bloom_filter', 'enable_kv_events': False, 'use_gpu_connector_v3': False, 'pin_timeout_sec': 300, 'pin_check_interval_sec': 30, 'remote_config_url': None, 'app_id': None, 'enable_hidden_state_cache': False, 'max_hidden_state_cpu_size': 2.0, 'hidden_state_layers': None, 'hidden_states_retrieve_mode': 'prefix_strict'} [3m(cache_engine.py:109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,828] LMCache INFO:[0m LMCacheWorker is not initialized (related configs: enable_controller: False, role: worker, worker_id: 0, worker_ids: [0, 1]). [3m(cache_engine.py:159:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,828] LMCache INFO:[0m KV events are disabled. [3m(cache_engine.py:188:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,828] LMCache INFO:[0m Initializing usage context. [3m(context.py:171:lmcache.usage_telemetry.context)[0m
+[32;20m[2026-11-25 16:29:22,829] LMCache INFO:[0m Creating LMCacheEngine with config: {'chunk_size': 256, 'local_cpu': False, 'max_local_cpu_size': 0.0, 'local_cpu_use_hugepages': False, 'reserve_local_cpu_size': 0.0, 'local_disk': None, 'local_disk_path_sharding': 'by_gpu', 'max_local_disk_size': 0.0, 'remote_url': None, 'remote_serde': 'naive', 'use_layerwise': False, 'save_decode_cache': False, 'pre_caching_hash_algorithm': 'builtin', 'enable_blending': False, 'blend_recompute_ratios': None, 'blend_thresholds': None, 'blend_check_layers': None, 'blend_min_tokens': 256, 'blend_special_str': ' # # ', 'retrieve_locations': None, 'store_location': None, 'enable_p2p': False, 'p2p_host': None, 'p2p_init_ports': None, 'p2p_lookup_ports': None, 'mp_host': None, 'mp_port': 5555, 'enable_controller': False, 'lmcache_instance_id': 'lmcacheengineconfig_c39a4b012e9a4234bc9bdbfe85c5149a', 'controller_pull_url': None, 'controller_reply_url': None, 'lmcache_worker_ports': None, 'lmcache_worker_ids': None, 'lmcache_worker_heartbeat_delay_time': 10, 'lmcache_worker_heartbeat_time': None, 'enable_pd': True, 'pd_role': 'sender', 'pd_buffer_size': 3355443200, 'pd_buffer_device': 'cuda', 'pd_peer_host': None, 'pd_peer_init_port': None, 'pd_peer_alloc_port': None, 'pd_peer_query_port': None, 'pd_proxy_host': 'localhost', 'pd_proxy_port': 7500, 'pd_allocation_timeout_sec': inf, 'pd_shutdown_timeout_sec': 5.0, 'pd_condition_poll_interval_sec': 0.005, 'pd_max_prefill_len': 0, 'pd_backend_mode': 'async', 'pd_skip_proxy_notification': False, 'pd_bidirectional': False, 'transfer_channel': 'nixl', 'nixl_backends': ['UCX'], 'nixl_buffer_size': None, 'nixl_buffer_device': None, 'gds_path': None, 'gds_path_sharding': 'by_gpu', 'gds_buffer_size': None, 'maru_path': None, 'maru_pool_size': 4.0, 'use_gds': True, 'gds_backend': 'cufile', 'audit_actual_remote_url': None, 'internal_api_server_host': '0.0.0.0', 'extra_config': None, 'save_unfull_chunk': True, 'blocking_timeout_secs': 10, 'external_lookup_client': None, 'py_enable_gc': True, 'cache_policy': 'LRU', 'numa_mode': None, 'enable_async_loading': False, 'internal_api_server_enabled': False, 'internal_api_server_port_start': 6999, 'priority_limit': None, 'internal_api_server_include_index_list': None, 'internal_api_server_socket_path_prefix': None, 'runtime_plugin_locations': None, 'storage_plugins': None, 'remote_storage_plugins': None, 'lookup_timeout_ms': 3000, 'min_retrieve_tokens': 0, 'hit_miss_ratio': None, 'lookup_server_worker_ids': None, 'enable_scheduler_bypass_lookup': False, 'script_allowed_imports': None, 'enable_lazy_memory_allocator': False, 'lazy_memory_initial_ratio': 0.2, 'lazy_memory_expand_trigger_ratio': 0.5, 'lazy_memory_step_ratio': 0.1, 'lazy_memory_safe_size': 0.0, 'enable_chunk_statistics': False, 'chunk_statistics_auto_start_statistics': False, 'chunk_statistics_auto_exit_timeout_hours': 0.0, 'chunk_statistics_auto_exit_target_unique_chunks': 0, 'chunk_statistics_strategy': 'memory_bloom_filter', 'enable_kv_events': False, 'use_gpu_connector_v3': False, 'pin_timeout_sec': 300, 'pin_check_interval_sec': 30, 'remote_config_url': None, 'app_id': None, 'enable_hidden_state_cache': False, 'max_hidden_state_cpu_size': 2.0, 'hidden_state_layers': None, 'hidden_states_retrieve_mode': 'prefix_strict'} [3m(cache_engine.py:109:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,829] LMCache INFO:[0m LMCacheWorker is not initialized (related configs: enable_controller: False, role: worker, worker_id: 1, worker_ids: [0, 1]). [3m(cache_engine.py:159:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,829] LMCache INFO:[0m KV events are disabled. [3m(cache_engine.py:188:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:22,829] LMCache INFO:[0m Initializing usage context. [3m(context.py:171:lmcache.usage_telemetry.context)[0m
+[32;20m[2026-11-25 16:29:22,829] LMCache INFO:[0m PeriodicThread PinMonitor-thread entering main loop (interval=30.0s) [3m(periodic_thread.py:304:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,830] LMCache INFO:[0m Started PeriodicThread: PinMonitor-thread (level=critical, interval=30.0s, init_wait=0.0s) [3m(periodic_thread.py:248:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,830] LMCache INFO:[0m PinMonitor started [3m(pin_monitor.py:223:lmcache.v1.pin_monitor)[0m
+[32;20m[2026-11-25 16:29:22,831] LMCache INFO:[0m PeriodicThread PinMonitor-thread entering main loop (interval=30.0s) [3m(periodic_thread.py:304:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,831] LMCache INFO:[0m Started PeriodicThread: PinMonitor-thread (level=critical, interval=30.0s, init_wait=0.0s) [3m(periodic_thread.py:248:lmcache.v1.periodic_thread)[0m
+[32;20m[2026-11-25 16:29:22,832] LMCache INFO:[0m PinMonitor started [3m(pin_monitor.py:223:lmcache.v1.pin_monitor)[0m
+[32;20m[2026-11-25 16:29:23,247] LMCache INFO:[0m lmcache lookup server started [3m(lmcache_lookup_client.py:270:lmcache.v1.lookup_client.lmcache_lookup_client)[0m
+[32;20m[2026-11-25 16:29:23,248] LMCache INFO:[0m Internal API server disabled. internal_api_server_enabled=False, port_offset=1, port=7000, socket_path=None, include_index_list=None [3m(api_server.py:67:lmcache.v1.internal_api_server.api_server)[0m
+[32;20m[2026-11-25 16:29:23,248] LMCache INFO:[0m LMCache initialized for role KVConnectorRole.WORKER with version NA-NA, vllm version 0.32.0, lmcache cache_engine metadata: LMCacheMetadata(model_name='/mxstorage/pde_ai/models/llm/Qwen/Qwen3-32B/', world_size=2, local_world_size=2, worker_id=0, local_worker_id=0, kv_dtype=torch.bfloat16, kv_shape=(64, 2, 256, 4, 128), use_mla=False, role='worker', served_model_name='qwen2.5', chunk_size=256, kv_layer_groups_manager=None, engine_id='53cb692e-5593-478a-be3e-f3c98d12ffa6', kv_connector_extra_config={'discard_partial_chunks': False, 'lmcache_rpc_port': 'producer1'}) [3m(vllm_v1_adapter.py:492:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:23,253] LMCache INFO:[0m Registering KV caches [3m(vllm_v1_adapter.py:755:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:23,253] LMCache INFO:[0m Post initializing LMCacheEngine [3m(cache_engine.py:303:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:23,253] LMCache INFO:[0m Initialize storage manager on rank 0, use layerwise: False,save only first rank: False [3m(cache_engine.py:315:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:23,256] LMCache INFO:[0m Setting cuda device to cuda:0  [3m(pd_backend_async.py:445:lmcache.v1.storage_backend.pd_backend_async)[0m
+[32;20m[2026-11-25 16:29:23,257] LMCache INFO:[0m Paged tensor memory allocator initialized, shapes: [torch.Size([64, 2, 256, 4, 128])], dtypes: [torch.bfloat16], align bytes: 33554432 [3m(paged_tensor_memory_allocator.py:108:lmcache.v1.memory_management)[0m
+[32;20m[2026-11-25 16:29:23,260] LMCache INFO:[0m lmcache lookup server started [3m(lmcache_lookup_client.py:270:lmcache.v1.lookup_client.lmcache_lookup_client)[0m
+[32;20m[2026-11-25 16:29:23,262] LMCache INFO:[0m Internal API server disabled. internal_api_server_enabled=False, port_offset=2, port=7001, socket_path=None, include_index_list=None [3m(api_server.py:67:lmcache.v1.internal_api_server.api_server)[0m
+[32;20m[2026-11-25 16:29:23,262] LMCache INFO:[0m LMCache initialized for role KVConnectorRole.WORKER with version NA-NA, vllm version 0.32.0, lmcache cache_engine metadata: LMCacheMetadata(model_name='/mxstorage/pde_ai/models/llm/Qwen/Qwen3-32B/', world_size=2, local_world_size=2, worker_id=1, local_worker_id=1, kv_dtype=torch.bfloat16, kv_shape=(64, 2, 256, 4, 128), use_mla=False, role='worker', served_model_name='qwen2.5', chunk_size=256, kv_layer_groups_manager=None, engine_id='53cb692e-5593-478a-be3e-f3c98d12ffa6', kv_connector_extra_config={'discard_partial_chunks': False, 'lmcache_rpc_port': 'producer1'}) [3m(vllm_v1_adapter.py:492:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:23,266] LMCache INFO:[0m Registering KV caches [3m(vllm_v1_adapter.py:755:lmcache.integration.vllm.vllm_v1_adapter)[0m
+[32;20m[2026-11-25 16:29:23,266] LMCache INFO:[0m Post initializing LMCacheEngine [3m(cache_engine.py:303:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:23,266] LMCache INFO:[0m Initialize storage manager on rank 1, use layerwise: False,save only first rank: False [3m(cache_engine.py:315:lmcache.v1.cache_engine)[0m
+[32;20m[2026-11-25 16:29:23,269] LMCache INFO:[0m Setting cuda device to cuda:1  [3m(pd_backend_async.py:445:lmcache.v1.storage_backend.pd_backend_async)[0m
+[32;20m[2026-11-25 16:29:23,270] LMCache INFO:[0m Paged tensor memory allocator initialized, shapes: [torch.Size([64, 2, 256, 4, 128])], dtypes: [torch.bfloat16], align bytes: 33554432 [3m(paged_tensor_memory_allocator.py:108:lmcache.v1.memory_management)[0m
+(EngineCore pid=1912) INFO 11-25 16:30:23 [shm_broadcast.py:871] No available shared memory broadcast block found in 60 seconds. This typically happens when some processes are hanging or doing some time-consuming work (e.g. compilation, weight/kv cache quantization).
+(EngineCore pid=1912) INFO 11-25 16:31:23 [shm_broadcast.py:871] No available shared memory broadcast block found in 60 seconds. This typically happens when some processes are hanging or doing some time-consuming work (e.g. compilation, weight/kv cache quantization).
+
+--- proxy: /tmp/pytest-of-root/pytest-0/run_1p2d_tp20/proxy.log ---
+(log file not found)
+
+================================================================================
+decoder1 (pgid=289) did not exit on SIGTERM, sending SIGKILL to its process group.
+decoder2 (pgid=290) did not exit on SIGTERM, sending SIGKILL to its process group.
+prefiller (pgid=291) did not exit on SIGTERM, sending SIGKILL to its process group.
+GPU 0: 62.1/63.6 GiB free, proceeding.
+GPU 1: 62.1/63.6 GiB free, proceeding.
+GPU 2: 62.1/63.6 GiB free, proceeding.
+GPU 3: 62.1/63.6 GiB free, proceeding.
+GPU 4: 62.1/63.6 GiB free, proceeding.
+GPU 5: 62.1/63.6 GiB free, proceeding.
+ERROR
+
+==================================== ERRORS ====================================
+______________ ERROR at setup of test_chat_completion_round_robin ______________
+
+host = 'localhost', port = 7200, timeout = 300, process = None
+processes = {'decoder1': <Popen: returncode: -9 args: ['vllm', 'serve', '/mxstorage/pde_ai/models/llm...>, 'decoder2': <Popen: ret...e/pde_ai/models/llm...>, 'prefiller': <Popen: returncode: -9 args: ['vllm', 'serve', '/mxstorage/pde_ai/models/llm...>}
+log_paths = {'decoder1': PosixPath('/tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder1.log'), 'decoder2': PosixPath('/tmp/pytest-...oot/pytest-0/run_1p2d_tp20/prefiller.log'), 'proxy': PosixPath('/tmp/pytest-of-root/pytest-0/run_1p2d_tp20/proxy.log')}
+log_handles = {'d1': <_io.TextIOWrapper name='/tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder1.log' mode='w' encoding='utf-8'>, '..., 'pre': <_io.TextIOWrapper name='/tmp/pytest-of-root/pytest-0/run_1p2d_tp20/prefiller.log' mode='w' encoding='utf-8'>}
+stage = 'decoder1 startup'
+
+    def wait_for_port(host, port, timeout=180, process=None, processes=None, log_paths=None,
+                       log_handles=None, stage="startup"):
+        """Block until `host:port` accepts a connection.
+    
+        Accepts either a single `process` (Popen) or a `processes` dict of
+        {name: Popen} -- if any of them has already exited, fail fast with the
+        tail of its log instead of waiting out the full timeout.
+        """
+        all_processes = dict(processes) if processes else {}
+        if process is not None:
+            all_processes.setdefault(stage, process)
+    
+        start = time.monotonic()
+        while True:
+            for name, proc in all_processes.items():
+                retcode = proc.poll()
+                if retcode is not None:
+                    print(f"[FATAL] Process {name} exited unexpectedly during {stage} with code {retcode}.")
+                    if log_paths:
+                        dump_logs(log_paths, log_handles)
+                    raise RuntimeError(f"Process {name} exited unexpectedly during {stage} with code {retcode}.")
+            try:
+>               with socket.create_connection((host, port), timeout=1):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+common.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/conda/lib/python3.12/socket.py:865: in create_connection
+    raise exceptions[0]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+address = ('localhost', 7200), timeout = 1, source_address = None
+
+    def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT,
+                          source_address=None, *, all_errors=False):
+        """Connect to *address* and return the socket object.
+    
+        Convenience function.  Connect to *address* (a 2-tuple ``(host,
+        port)``) and return the socket object.  Passing the optional
+        *timeout* parameter will set the timeout on the socket instance
+        before attempting to connect.  If no *timeout* is supplied, the
+        global default timeout setting returned by :func:`getdefaulttimeout`
+        is used.  If *source_address* is set it must be a tuple of (host, port)
+        for the socket to bind as a source address before making the connection.
+        A host of '' or port 0 tells the OS to use the default. When a connection
+        cannot be created, raises the last error if *all_errors* is False,
+        and an ExceptionGroup of all errors if *all_errors* is True.
+        """
+    
+        host, port = address
+        exceptions = []
+        for res in getaddrinfo(host, port, 0, SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket(af, socktype, proto)
+                if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+>               sock.connect(sa)
+E               ConnectionRefusedError: [Errno 111] Connection refused
+
+/opt/conda/lib/python3.12/socket.py:850: ConnectionRefusedError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x7f131867f5c0>, _basetemp=PosixPath('/tmp/pytest-of-root/pytest-0'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def cluster_1p2d_tp2(tmp_path_factory):
+        run_dir = tmp_path_factory.mktemp("run_1p2d_tp2")
+        print(f"\n[Info] Test artifacts dir: {run_dir}")
+    
+        p_conf = run_dir / "prefiller.yaml"
+        p_conf.write_text(textwrap.dedent(f"""
+            local_cpu: False
+            max_local_cpu_size: 0
+            max_local_disk_size: 0
+            enable_pd: True
+            transfer_channel: "nixl"
+            pd_role: "sender"
+            pd_proxy_host: "{HOST}"
+            pd_proxy_port: {PROXY_INTERNAL_PORT}
+            pd_buffer_size: {FIXED_BUFFER_SIZE}
+            pd_buffer_device: "cuda"
+            nixl_backends: [UCX]
+        """))
+    
+        d1_conf = run_dir / "decoder1.yaml"
+        d1_conf.write_text(textwrap.dedent(f"""
+            local_cpu: False
+            max_local_cpu_size: 0
+            enable_pd: True
+            transfer_channel: "nixl"
+            pd_role: "receiver"
+            pd_peer_host: "{HOST}"
+            pd_peer_init_port: {json.dumps(DECODER1_INIT_PORTS)}
+            pd_peer_alloc_port: {json.dumps(DECODER1_ALLOC_PORTS)}
+            pd_buffer_size: {FIXED_BUFFER_SIZE}
+            pd_buffer_device: "cuda"
+            nixl_backends: [UCX]
+        """))
+    
+        d2_conf = run_dir / "decoder2.yaml"
+        d2_conf.write_text(textwrap.dedent(f"""
+            local_cpu: False
+            max_local_cpu_size: 0
+            enable_pd: True
+            transfer_channel: "nixl"
+            pd_role: "receiver"
+            pd_peer_host: "{HOST}"
+            pd_peer_init_port: {json.dumps(DECODER2_INIT_PORTS)}
+            pd_peer_alloc_port: {json.dumps(DECODER2_ALLOC_PORTS)}
+            pd_buffer_size: {FIXED_BUFFER_SIZE}
+            pd_buffer_device: "cuda"
+            nixl_backends: [UCX]
+        """))
+    
+        processes = {}
+        logs = {}
+        log_paths = {
+            "decoder1": run_dir / "decoder1.log",
+            "decoder2": run_dir / "decoder2.log",
+            "prefiller": run_dir / "prefiller.log",
+            "proxy": run_dir / "proxy.log",
+        }
+    
+        base_env = os.environ.copy()
+        base_env.update({
+            "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
+            "VLLM_ENABLE_V1_MULTIPROCESSING": "1",
+            "UCX_TLS": "maca_ipc,maca_copy,tcp",
+            "UCX_PROTO_ENABLE": "y",
+            "LMCACHE_USE_EXPERIMENTAL": "True",
+            "VLLM_DISABLE_REQUEST_ID_RANDOMIZATION": "1",
+        })
+    
+        try:
+            logs["d1"] = open(log_paths["decoder1"], "w")
+            d1_env = base_env.copy()
+            d1_env["CUDA_VISIBLE_DEVICES"] = "2,3"
+            d1_env["LMCACHE_CONFIG_FILE"] = str(d1_conf)
+            d1_cmd = [
+                "vllm", "serve", VLLM_MODEL_PATH,
+                "--port", str(DECODER1_PORT),
+                "--gpu-memory-utilization", str(GPU_MEMORY_UTILIZATION),
+                "--tensor-parallel-size", "2",
+                "--served-model-name", "qwen2.5",
+                "--no-enable-prefix-caching",
+                "--kv-transfer-config",
+                json.dumps({
+                    "kv_connector": "LMCacheConnectorV1",
+                    "kv_role": "kv_consumer",
+                    "kv_connector_extra_config": {
+                        "discard_partial_chunks": False,
+                        "lmcache_rpc_port": "consumer1",
+                        "skip_last_n_tokens": 1,
+                    },
+                }),
+            ]
+            processes["decoder1"] = popen_own_group(d1_cmd, env=d1_env, stdout=logs["d1"], stderr=subprocess.STDOUT)
+    
+            logs["d2"] = open(log_paths["decoder2"], "w")
+            d2_env = base_env.copy()
+            d2_env["CUDA_VISIBLE_DEVICES"] = "4,5"
+            d2_env["LMCACHE_CONFIG_FILE"] = str(d2_conf)
+            d2_cmd = [
+                "vllm", "serve", VLLM_MODEL_PATH,
+                "--port", str(DECODER2_PORT),
+                "--gpu-memory-utilization", str(GPU_MEMORY_UTILIZATION),
+                "--tensor-parallel-size", "2",
+                "--served-model-name", "qwen2.5",
+                "--no-enable-prefix-caching",
+                "--kv-transfer-config",
+                json.dumps({
+                    "kv_connector": "LMCacheConnectorV1",
+                    "kv_role": "kv_consumer",
+                    "kv_connector_extra_config": {
+                        "discard_partial_chunks": False,
+                        "lmcache_rpc_port": "consumer2",
+                        "skip_last_n_tokens": 1,
+                    },
+                }),
+            ]
+            processes["decoder2"] = popen_own_group(d2_cmd, env=d2_env, stdout=logs["d2"], stderr=subprocess.STDOUT)
+    
+            logs["pre"] = open(log_paths["prefiller"], "w")
+            p_env = base_env.copy()
+            p_env["CUDA_VISIBLE_DEVICES"] = "0,1"
+            p_env["LMCACHE_CONFIG_FILE"] = str(p_conf)
+            p_cmd = [
+                "vllm", "serve", VLLM_MODEL_PATH,
+                "--port", str(PREFILLER_PORT),
+                "--gpu-memory-utilization", str(GPU_MEMORY_UTILIZATION),
+                "--tensor-parallel-size", "2",
+                "--served-model-name", "qwen2.5",
+                "--no-enable-prefix-caching",
+                "--kv-transfer-config",
+                json.dumps({
+                    "kv_connector": "LMCacheConnectorV1",
+                    "kv_role": "kv_producer",
+                    "kv_connector_extra_config": {
+                        "discard_partial_chunks": False,
+                        "lmcache_rpc_port": "producer1",
+                    },
+                }),
+            ]
+            processes["prefiller"] = popen_own_group(p_cmd, env=p_env, stdout=logs["pre"], stderr=subprocess.STDOUT)
+    
+>           _wait_for_port(HOST, DECODER1_PORT, 300, processes=processes, log_paths=log_paths, log_handles=logs, stage="decoder1 startup")
+
+lmcache/test_lmcache_1p2d_tp2.py:181: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+host = 'localhost', port = 7200, timeout = 300, process = None
+processes = {'decoder1': <Popen: returncode: -9 args: ['vllm', 'serve', '/mxstorage/pde_ai/models/llm...>, 'decoder2': <Popen: ret...e/pde_ai/models/llm...>, 'prefiller': <Popen: returncode: -9 args: ['vllm', 'serve', '/mxstorage/pde_ai/models/llm...>}
+log_paths = {'decoder1': PosixPath('/tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder1.log'), 'decoder2': PosixPath('/tmp/pytest-...oot/pytest-0/run_1p2d_tp20/prefiller.log'), 'proxy': PosixPath('/tmp/pytest-of-root/pytest-0/run_1p2d_tp20/proxy.log')}
+log_handles = {'d1': <_io.TextIOWrapper name='/tmp/pytest-of-root/pytest-0/run_1p2d_tp20/decoder1.log' mode='w' encoding='utf-8'>, '..., 'pre': <_io.TextIOWrapper name='/tmp/pytest-of-root/pytest-0/run_1p2d_tp20/prefiller.log' mode='w' encoding='utf-8'>}
+stage = 'decoder1 startup'
+
+    def wait_for_port(host, port, timeout=180, process=None, processes=None, log_paths=None,
+                       log_handles=None, stage="startup"):
+        """Block until `host:port` accepts a connection.
+    
+        Accepts either a single `process` (Popen) or a `processes` dict of
+        {name: Popen} -- if any of them has already exited, fail fast with the
+        tail of its log instead of waiting out the full timeout.
+        """
+        all_processes = dict(processes) if processes else {}
+        if process is not None:
+            all_processes.setdefault(stage, process)
+    
+        start = time.monotonic()
+        while True:
+            for name, proc in all_processes.items():
+                retcode = proc.poll()
+                if retcode is not None:
+                    print(f"[FATAL] Process {name} exited unexpectedly during {stage} with code {retcode}.")
+                    if log_paths:
+                        dump_logs(log_paths, log_handles)
+                    raise RuntimeError(f"Process {name} exited unexpectedly during {stage} with code {retcode}.")
+            try:
+                with socket.create_connection((host, port), timeout=1):
+                    return
+            except OSError:
+                if time.monotonic() - start >= timeout:
+                    print(f"[FATAL] Timeout waiting for {host}:{port} during {stage}.")
+                    if log_paths:
+                        dump_logs(log_paths, log_handles)
+>                   raise TimeoutError(f"Port {port} not ready in {timeout}s")
+E                   TimeoutError: Port 7200 not ready in 300s
+
+common.py:110: TimeoutError
+- generated xml file: /workspace/pd_test_script/artifacts/test_runs/20261125_162623/lmcache__test_lmcache_1p2d_tp2.py/junit.xml -
+=========================== short test summary info ============================
+ERROR lmcache/test_lmcache_1p2d_tp2.py::test_chat_completion_round_robin - TimeoutError: Port 7200 not ready in 300s
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+========================= 1 error in 332.72s (0:05:32) =========================
