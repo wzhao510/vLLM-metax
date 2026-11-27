@@ -1,0 +1,143 @@
+$ # === 确认 1：mixl 的 libuct 里是否静态包含了所有插件符号 ===
+echo "=== mixl libuct 里有没有 maca/ib/cma 的符号？==="
+nm -D /opt/conda/lib/python3.12/site-packages/mixl.libs/libuct-b2a21910.so.0.0.0 2>/dev/null | grep -iE "maca|uct_md|uct_tcp" | head -10
+
+echo ""
+echo "=== 系统 libuct 里有没有 maca 符号？==="
+nm -D /opt/maca-3.10.1/ucx/lib/libuct.so.0.0.0 2>/dev/null | grep -iE "maca|uct_md|uct_tcp" | head -10
+
+# === 确认 2：mixl 编 UCX 时写死的插件目录到底是什么 ===
+echo ""
+echo "=== mixl libuct 的编译时默认插件路径 ==="
+strings /opt/conda/lib/python3.12/site-packages/mixl.libs/libuct-b2a21910.so.0.0.0 | grep -oE '/[^ ]*ucx[^ ]*' | head -10
+echo "=== mixl libucp 的编译时默认插件路径 ==="
+strings /opt/conda/lib/python3.12/site-packages/mixl.libs/libucp-ce5fdac8.so.0.0.0 | grep -oE '/[^ ]*ucx[^ ]*' | head -10
+
+# === 确认 3：用 UCX_LOG_LEVEL=debug 看 UCX 到底做了什么 ===
+echo ""
+echo "=== UCX debug 日志 ==="
+UCX_LOG_LEVEL=debug UCX_LOG_FILE=stderr timeout 15 python3 /workspace/vllm/code/src/auto_pd_test/nixl_ucx_repro.py --backend UCX 2>&1 | head -80 &
+PID=$!; sleep 10
+kill -9 $PID 2>/dev/null
+wait $PID 2>/dev/null
+=== mixl libuct 里有没有 maca/ib/cma 的符号？===
+0000000000015440 T uct_md_base_md_query
+0000000000013dac T uct_md_close
+00000000000145e5 T uct_md_config_read
+000000000025c480 B uct_md_config_table
+0000000000015a49 T uct_md_detect_memory_type
+0000000000015aab T uct_md_dummy_mem_dereg
+0000000000015a80 T uct_md_dummy_mem_reg
+0000000000014239 T uct_md_iface_config_read
+0000000000015a33 T uct_md_is_sockaddr_accessible
+0000000000015774 T uct_md_mem_advise
+
+=== 系统 libuct 里有没有 maca 符号？===
+0000000000015440 T uct_md_base_md_query
+0000000000013dac T uct_md_close
+00000000000145e5 T uct_md_config_read
+000000000025c480 B uct_md_config_table
+0000000000015a49 T uct_md_detect_memory_type
+0000000000015aab T uct_md_dummy_mem_dereg
+0000000000015a80 T uct_md_dummy_mem_reg
+0000000000014239 T uct_md_iface_config_read
+0000000000015a33 T uct_md_is_sockaddr_accessible
+0000000000015774 T uct_md_mem_advise
+
+=== mixl libuct 的编译时默认插件路径 ===
+/workspace/communication/ucx/src/uct/base/uct_md.c
+/workspace/communication/ucx/src/uct/base/uct_md_vfs.c
+/workspace/communication/ucx/src/uct/base/uct_mem.c
+/workspace/communication/ucx/src/uct/base/uct_component.c
+/workspace/communication/ucx/src/ucs/arch/x86_64/cpu.h
+/workspace/communication/ucx/src/uct/base/uct_iface.c
+/workspace/communication/ucx/src/ucs/async/thread.h
+/workspace/communication/ucx/src/uct/base/uct_iface_vfs.c
+/workspace/communication/ucx/src/uct/base/uct_worker.c
+/workspace/communication/ucx/src/ucs/async/thread.h
+=== mixl libucp 的编译时默认插件路径 ===
+/workspace/communication/ucx/src/ucp/core/ucp_worker.inl
+/workspace/communication/ucx/src/ucp/core/ucp_ep.inl
+/workspace/communication/ucx/src/ucs/datastruct/bitmap.h
+/workspace/communication/ucx/src/ucp/core/ucp_request.inl
+/workspace/communication/ucx/src/ucp/proto/proto_common.inl
+/workspace/communication/ucx/src/ucp/proto/proto_am.inl
+/workspace/communication/ucx/src/ucp/dt/datatype_iter.inl
+/workspace/communication/ucx/src/ucp/core/ucp_mm.inl
+/workspace/communication/ucx/src/ucs/memory/rcache.inl
+/workspace/communication/ucx/src/ucp/am/eager.inl
+
+=== UCX debug 日志 ===
+[1] 3330148
+[1795771119.083799] [mx-luwu-gpunode-10-13-81-33:3330150:0]             cpu.c:339  UCX  DEBUG measured tsc frequency 2698.932 MHz after 1.00 ms
+[1795771119.083825] [mx-luwu-gpunode-10-13-81-33:3330150:0]            init.c:121  UCX  DEBUG /opt/maca/ucx/lib/libucs.so.0 loaded at 0x7f5508200000
+[1795771119.083842] [mx-luwu-gpunode-10-13-81-33:3330150:0]            init.c:122  UCX  DEBUG cmd line: python3 /workspace/vllm/code/src/auto_pd_test/nixl_ucx_repro.py --backend UCX 
+[1795771119.083852] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:72   UCX  DEBUG ucs library path: /opt/maca/ucx/lib/libucs.so.0
+[1795771119.083856] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:304  UCX  DEBUG loading modules for ucs
+[1795771122.319930] [mx-luwu-gpunode-10-13-81-33:3330150:0]            init.c:121  UCX  DEBUG /opt/maca/ucx/lib/libucs.so.0 loaded at 0x7f5508200000
+[1795771122.319942] [mx-luwu-gpunode-10-13-81-33:3330150:0]            init.c:121  UCX  DEBUG /opt/maca/ucx/lib/libucs.so.0 loaded at 0x7f5508200000
+[1795771122.319945] [mx-luwu-gpunode-10-13-81-33:3330150:0]            init.c:122  UCX  DEBUG cmd line: python3 /workspace/vllm/code/src/auto_pd_test/nixl_ucx_repro.py --backend UCX 
+[1795771122.319947] [mx-luwu-gpunode-10-13-81-33:3330150:0]            init.c:122  UCX  DEBUG cmd line: python3 /workspace/vllm/code/src/auto_pd_test/nixl_ucx_repro.py --backend UCX 
+2026-11-27 17:18:42 NIXL INFO    _api.py:251 Initialized NIXL agent: 6dddc931-faf7-4e45-911c-eede78deed99
+[PASS] agent(backends=[]) created in 0.00s
+[....] calling createBackend('UCX') now
+[1795771122.320487] [mx-luwu-gpunode-10-13-81-33:3330150:0]            time.c:22   UCX  DEBUG arch clock frequency: 2698932000.00 Hz
+[1795771122.320493] [mx-luwu-gpunode-10-13-81-33:3330150:0]            time.c:22   UCX  DEBUG arch clock frequency: 2698932000.00 Hz
+[1795771122.338678] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:304  UCX  DEBUG loading modules for uct
+[1795771122.338682] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:304  UCX  DEBUG loading modules for uct
+[1795771122.338685] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:257  UCX  DEBUG loading module 'ib' with mode 0x1
+[1795771122.338686] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:257  UCX  DEBUG loading module 'ib' with mode 0x1
+[1795771122.339709] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:304  UCX  DEBUG loading modules for uct_ib
+[1795771122.339713] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:304  UCX  DEBUG loading modules for uct_ib
+[1795771122.339726] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_ib.so.0.0.0 [0x55e9f71b12a0]
+[1795771122.339730] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_ib.so.0.0.0 [0x55e9f71b12a0]
+[1795771122.339733] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:257  UCX  DEBUG loading module 'cma' with mode 0x1
+[1795771122.339734] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:257  UCX  DEBUG loading module 'cma' with mode 0x1
+[1795771122.339818] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_cma.so.0.0.0 [0x55e9f71b3500]
+[1795771122.339821] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_cma.so.0.0.0 [0x55e9f71b3500]
+[1795771122.339823] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:257  UCX  DEBUG loading module 'maca' with mode 0x1
+[1795771122.339825] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:257  UCX  DEBUG loading module 'maca' with mode 0x1
+[1795771126.110192] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_maca.so.0.0.0 [0x55e9f71b3bb0]
+[1795771126.110204] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:192  UCX  DEBUG loaded /opt/maca-3.10.1/ucx/lib/ucx/libuct_maca.so.0.0.0 [0x55e9f71b3bb0]
+[1795771126.110294] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:201  UCX  DEBUG calling 'ucs_module_global_init' in '/opt/maca-3.10.1/ucx/lib/ucx/libuct_maca.so.0.0.0': [0x7f532a00a298]
+[1795771126.110297] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:201  UCX  DEBUG calling 'ucs_module_global_init' in '/opt/maca-3.10.1/ucx/lib/ucx/libuct_maca.so.0.0.0': [0x7f532a00a298]
+[1795771126.110303] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:304  UCX  DEBUG loading modules for uct_maca
+[1795771126.110305] [mx-luwu-gpunode-10-13-81-33:3330150:0]          module.c:304  UCX  DEBUG loading modules for uct_maca
+[1795771126.110594] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2523 UCX  INFO  Version 1.20.1 (loaded from /opt/maca/ucx/lib/libucp.so.0)
+[1795771126.110598] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2523 UCX  INFO  Version 1.20.1 (loaded from /opt/maca/ucx/lib/libucp.so.0)
+[1795771126.110606] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2260 UCX  DEBUG estimated number of endpoints is 1
+[1795771126.110608] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2260 UCX  DEBUG estimated number of endpoints is 1
+[1795771126.110609] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2267 UCX  DEBUG estimated number of endpoints per node is 1
+[1795771126.110611] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2267 UCX  DEBUG estimated number of endpoints per node is 1
+[1795771126.110612] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2273 UCX  DEBUG node local id is 0
+[1795771126.110614] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2273 UCX  DEBUG node local id is 0
+[1795771126.110626] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2283 UCX  DEBUG estimated bcopy bandwidth is 6081740800.000000
+[1795771126.110630] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2283 UCX  DEBUG estimated bcopy bandwidth is 6081740800.000000
+[1795771126.110645] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2348 UCX  DEBUG allocation method[0] is md 'sysv'
+[1795771126.110647] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2348 UCX  DEBUG allocation method[0] is md 'sysv'
+[1795771126.110649] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2348 UCX  DEBUG allocation method[1] is md 'posix'
+[1795771126.110650] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2348 UCX  DEBUG allocation method[1] is md 'posix'
+[1795771126.110653] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2360 UCX  DEBUG allocation method[2] is 'thp'
+[1795771126.110654] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2360 UCX  DEBUG allocation method[2] is 'thp'
+[1795771126.110656] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2348 UCX  DEBUG allocation method[3] is md '*'
+[1795771126.110657] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2348 UCX  DEBUG allocation method[3] is md '*'
+[1795771126.110658] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2360 UCX  DEBUG allocation method[4] is 'mmap'
+[1795771126.110660] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2360 UCX  DEBUG allocation method[4] is 'mmap'
+[1795771126.110661] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2360 UCX  DEBUG allocation method[5] is 'heap'
+[1795771126.110663] [mx-luwu-gpunode-10-13-81-33:3330150:0]     ucp_context.c:2360 UCX  DEBUG allocation method[5] is 'heap'
+[1795771126.112581] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 0 for bus id 1b:00.0
+[1795771126.112586] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 0 for bus id 1b:00.0
+[1795771126.112900] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 1 for bus id 1c:00.0
+[1795771126.112903] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 1 for bus id 1c:00.0
+[1795771126.113194] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 2 for bus id 2b:00.0
+[1795771126.113196] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 2 for bus id 2b:00.0
+[1795771126.113605] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 3 for bus id 2d:00.0
+[1795771126.113608] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 3 for bus id 2d:00.0
+[1795771126.113933] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 4 for bus id 9a:00.0
+[1795771126.113935] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 4 for bus id 9a:00.0
+[1795771126.114266] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 5 for bus id 9b:00.0
+[1795771126.114269] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 5 for bus id 9b:00.0
+[1795771126.114595] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 6 for bus id ab:00.0
+[1795771126.114598] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 6 for bus id ab:00.0
+[1795771126.114929] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 7 for bus id ac:00.0
+[1795771126.114932] [mx-luwu-gpunode-10-13-81-33:3330150:0]            topo.c:354  UCX  DEBUG added sys_dev 7 for bus id ac:00.0
