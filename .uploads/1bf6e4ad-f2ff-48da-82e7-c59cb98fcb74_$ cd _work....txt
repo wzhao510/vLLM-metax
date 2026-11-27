@@ -1,0 +1,172 @@
+$ cd /workspace/vllm/code/src/auto_pd_test
+
+for f in /opt/conda/lib/python3.12/site-packages/.mixl.mesonpy.libs/plugins/libplugin_UCX.so \
+         /opt/conda/lib/python3.12/site-packages/mixl.libs/mixl/libplugin_UCX.so; do
+  echo "=== $f"
+  ls -l "$f"
+  readelf -d "$f" | grep -E "NEEDED|RPATH|RUNPATH"
+  echo
+done
+
+echo "=== libnixl.so 链了谁 ==="
+for f in $(find /opt/conda/lib/python3.12/site-packages -name "libnixl.so*" 2>/dev/null | head -3); do
+  echo "--- $f"; readelf -d "$f" | grep -E "NEEDED|RPATH|RUNPATH"
+done
+[1]+  Killed                  python3 nixl_ucx_repro.py --backend UCX
+=== /opt/conda/lib/python3.12/site-packages/.mixl.mesonpy.libs/plugins/libplugin_UCX.so
+-rwxr-xr-x 1 root root 728401 Nov 12 17:33 /opt/conda/lib/python3.12/site-packages/.mixl.mesonpy.libs/plugins/libplugin_UCX.so
+ 0x0000000000000001 (NEEDED)             Shared library: [libnixl_common.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libserdes.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libmcruntime.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libucp-ce5fdac8.so.0.0.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libucs-b51e65cf.so.0.0.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]
+ 0x000000000000000f (RPATH)              Library rpath: [$ORIGIN/..:$ORIGIN/../../mixl.libs]
+
+=== /opt/conda/lib/python3.12/site-packages/mixl.libs/mixl/libplugin_UCX.so
+-rwxr-xr-x 1 root root 956009 Nov 12 17:33 /opt/conda/lib/python3.12/site-packages/mixl.libs/mixl/libplugin_UCX.so
+ 0x0000000000000001 (NEEDED)             Shared library: [libnixl_common.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libserdes.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libucp-ce5fdac8.so.0.0.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libucs-b51e65cf.so.0.0.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]
+ 0x000000000000001d (RUNPATH)            Library runpath: [$ORIGIN/..:$ORIGIN:$ORIGIN/..:/workspace/out/Release/mxc500-3.10.1.1/linux/x86_64/ucx/lib:/workspace/out/Release/mxc500-3.10.1.1/linux/x86_64/lib:/workspace/out/Release/mxc500-3.10.1.1/linux/x86_64/mxgpu_llvm/lib]
+
+=== libnixl.so 链了谁 ===
+--- /opt/conda/lib/python3.12/site-packages/.mixl.mesonpy.libs/libnixl.so
+ 0x0000000000000001 (NEEDED)             Shared library: [libnixl_build.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libserdes.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstream.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libnixl_common.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libdl.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libz.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libmcruntime.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]
+ 0x000000000000001d (RUNPATH)            Library runpath: [/opt/nvidia/nvda_nixl/lib64:/workspace/prebuilts/external-library/centos8/x86_64/lib:/workspace/out/Release/mxc500-3.10.1.1/linux/x86_64/lib:/workspace/out/Release/mxc500-3.10.1.1/linux/x86_64/mxgpu_llvm/lib:$ORIGIN/.]
+(base) root@mx-luwu-gpunode-10-13-81-33:/workspace/vllm/code/src/auto_pd_test
+$ python3 nixl_ucx_repro.py --backend UCX &
+P=$(pgrep -f nixl_ucx_repro.py | head -1); sleep 8
+
+echo "--- 哪个线程在烧 ---"
+top -H -b -n1 -p $P | head -12
+
+gdb -p $P -batch \
+  -ex "set pagination off" \
+  -ex "thread apply all bt 12" \
+  -ex "info symbol \$pc" \
+  -ex "x/14i \$pc-20" 2>&1 | tail -70
+
+kill -9 $P
+[1] 3597968
+2026-11-27 20:59:47 NIXL INFO    _api.py:251 Initialized NIXL agent: bf191c2e-a450-4a0c-9d76-109792e7242c
+[PASS] agent(backends=[]) created in 0.00s
+[....] calling createBackend('UCX') now
+--- 哪个线程在烧 ---
+top - 20:59:52 up 30 days,  3:26,  0 users,  load average: 30.02, 39.84, 26.73
+Threads:  66 total,   1 running,  65 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  6.2 us,  4.3 sy,  0.0 ni, 89.4 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+MiB Mem : 2063872.+total, 313500.0 free, 172997.8 used, 1577375.+buff/cache
+MiB Swap:      0.0 total,      0.0 free,      0.0 used. 1765456.+avail Mem 
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+3597968 root      20   0   20.1g  10.5g   2.1g R  99.9   0.5   0:04.90 python3
+3597974 root      20   0   20.1g  10.5g   2.1g S   0.0   0.5   0:00.09 python3
+3597975 root      20   0   20.1g  10.5g   2.1g S   0.0   0.5   0:00.09 python3
+3597976 root      20   0   20.1g  10.5g   2.1g S   0.0   0.5   0:00.09 python3
+3597977 root      20   0   20.1g  10.5g   2.1g S   0.0   0.5   0:00.09 python3
+
+Thread 5 (Thread 0x7f32795fc640 (LWP 3597977) "python3"):
+#0  __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7f32817a0f60 <thread_status+480>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7f32817a0f60 <thread_status+480>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7f32817a0f60 <thread_status+480>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007f328256c961 in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7f32817a0f10 <thread_status+400>, cond=0x7f32817a0f38 <thread_status+440>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7f32817a0f38 <thread_status+440>, mutex=0x7f32817a0f10 <thread_status+400>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007f327fb266fb in blas_thread_server () from /opt/conda/lib/python3.12/site-packages/numpy/core/../../numpy.libs/libopenblas64_p-r0-0cf96a72.3.23.dev.so
+#6  0x00007f328256d9e3 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:442
+#7  0x00007f32825ff860 in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:81
+
+Thread 4 (Thread 0x7f327ddfd640 (LWP 3597976) "python3"):
+#0  __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7f32817a0ee0 <thread_status+352>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7f32817a0ee0 <thread_status+352>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7f32817a0ee0 <thread_status+352>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007f328256c961 in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7f32817a0e90 <thread_status+272>, cond=0x7f32817a0eb8 <thread_status+312>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7f32817a0eb8 <thread_status+312>, mutex=0x7f32817a0e90 <thread_status+272>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007f327fb266fb in blas_thread_server () from /opt/conda/lib/python3.12/site-packages/numpy/core/../../numpy.libs/libopenblas64_p-r0-0cf96a72.3.23.dev.so
+#6  0x00007f328256d9e3 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:442
+#7  0x00007f32825ff860 in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:81
+
+Thread 3 (Thread 0x7f327e5fe640 (LWP 3597975) "python3"):
+#0  __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7f32817a0e60 <thread_status+224>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7f32817a0e60 <thread_status+224>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7f32817a0e60 <thread_status+224>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007f328256c961 in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7f32817a0e10 <thread_status+144>, cond=0x7f32817a0e38 <thread_status+184>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7f32817a0e38 <thread_status+184>, mutex=0x7f32817a0e10 <thread_status+144>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007f327fb266fb in blas_thread_server () from /opt/conda/lib/python3.12/site-packages/numpy/core/../../numpy.libs/libopenblas64_p-r0-0cf96a72.3.23.dev.so
+#6  0x00007f328256d9e3 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:442
+#7  0x00007f32825ff860 in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:81
+
+Thread 2 (Thread 0x7f327edff640 (LWP 3597974) "python3"):
+#0  __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7f32817a0de0 <thread_status+96>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7f32817a0de0 <thread_status+96>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7f32817a0de0 <thread_status+96>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007f328256c961 in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7f32817a0d90 <thread_status+16>, cond=0x7f32817a0db8 <thread_status+56>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7f32817a0db8 <thread_status+56>, mutex=0x7f32817a0d90 <thread_status+16>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007f327fb266fb in blas_thread_server () from /opt/conda/lib/python3.12/site-packages/numpy/core/../../numpy.libs/libopenblas64_p-r0-0cf96a72.3.23.dev.so
+#6  0x00007f328256d9e3 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:442
+#7  0x00007f32825ff860 in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:81
+
+Thread 1 (Thread 0x7f32824d6740 (LWP 3597968) "python3"):
+#0  0x00007f328257f4bf in __libc_calloc (n=<optimized out>, elem_size=<optimized out>) at ./malloc/malloc.c:3650
+#1  0x00007f31dc4430b5 in ucs_calloc (nmemb=1, size=40, name=0x7f31d9249103 "device resource") at /workspace/communication/ucx/src/ucs/debug/memtrack.c:339
+#2  0x00007f31d922baca in uct_self_query_tl_devices (md=0x7f31d945c520 <md>, tl_devices_p=0x7ffe2850f430, num_tl_devices_p=0x7ffe2850f424) at /workspace/communication/ucx/src/uct/sm/self/self.c:273
+#3  0x00007f31d9213e49 in uct_md_query_tl_resources (md=0x7f31d945c520 <md>, resources_p=0x7ffe2850f4d0, num_resources_p=0x7ffe2850f4cc) at /workspace/communication/ucx/src/uct/base/uct_md.c:94
+#4  0x00007f31dc837162 in ucp_add_tl_resources (context=0x5647c7c2a060, md_index=0 '\000', config=0x5647c7786ba0, aux_tls=0x7ffe2850f760, num_resources_p=0x7ffe2850f590, avail_devices=0x7ffe2850f7b0, avail_tls=0x7ffe2850f730, dev_cfg_masks=0x7ffe2850f790, tl_cfg_mask=0x7ffe2850f658) at /workspace/communication/ucx/src/ucp/core/ucp_context.c:1359
+#5  0x00007f31dc838844 in ucp_add_component_resources (context=0x5647c7c2a060, cmpt_index=0 '\000', avail_devices=0x7ffe2850f7b0, avail_tls=0x7ffe2850f730, dev_cfg_masks=0x7ffe2850f790, tl_cfg_mask=0x7ffe2850f658, config=0x5647c7786ba0, aux_tls=0x7ffe2850f760) at /workspace/communication/ucx/src/ucp/core/ucp_context.c:1770
+#6  0x00007f31dc83988f in ucp_fill_resources (context=0x5647c7c2a060, config=0x5647c7786ba0) at /workspace/communication/ucx/src/ucp/core/ucp_context.c:2063
+#7  0x00007f31dc83b41a in ucp_init_version (api_major_version=1, api_minor_version=20, params=0x7ffe2850f9a0, config=0x5647c7786ba0, context_p=0x5647c776e370) at /workspace/communication/ucx/src/ucp/core/ucp_context.c:2565
+#8  0x00007f31db6a99e6 in nixlUcxContext::nixlUcxContext(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&, bool, unsigned long, nixl_thread_sync_t, unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) () from /opt/conda/lib/python3.12/site-packages/nixl/../.mixl.mesonpy.libs/plugins/libplugin_UCX.so
+#9  0x00007f31db69ab32 in nixlUcxEngine::nixlUcxEngine(nixlBackendInitParams const&) () from /opt/conda/lib/python3.12/site-packages/nixl/../.mixl.mesonpy.libs/plugins/libplugin_UCX.so
+#10 0x00007f31db69b079 in nixlUcxThreadEngine::nixlUcxThreadEngine(nixlBackendInitParams const&) () from /opt/conda/lib/python3.12/site-packages/nixl/../.mixl.mesonpy.libs/plugins/libplugin_UCX.so
+#11 0x00007f31db69ba44 in nixlUcxEngine::create(nixlBackendInitParams const&) () from /opt/conda/lib/python3.12/site-packages/nixl/../.mixl.mesonpy.libs/plugins/libplugin_UCX.so
+calloc + 127 in section .text of /lib/x86_64-linux-gnu/libc.so.6
+   0x7f328257f4ab <__libc_calloc+107>:  in     (%dx),%eax
+   0x7f328257f4ac <__libc_calloc+108>:  je     0x7f328257f6b0 <__libc_calloc+624>
+   0x7f328257f4b2 <__libc_calloc+114>:  xor    %eax,%eax
+   0x7f328257f4b4 <__libc_calloc+116>:  mov    $0x1,%edx
+   0x7f328257f4b9 <__libc_calloc+121>:  lock cmpxchg %edx,0x0(%r13)
+=> 0x7f328257f4bf <__libc_calloc+127>:  jne    0x7f328257f738 <__libc_calloc+760>
+   0x7f328257f4c5 <__libc_calloc+133>:  mov    0x60(%r13),%rbx
+   0x7f328257f4c9 <__libc_calloc+137>:  lea    0x1747b0(%rip),%rax        # 0x7f32826f3c80 <main_arena>
+   0x7f328257f4d0 <__libc_calloc+144>:  mov    0x8(%rbx),%rbp
+   0x7f328257f4d4 <__libc_calloc+148>:  and    $0xfffffffffffffff8,%rbp
+   0x7f328257f4d8 <__libc_calloc+152>:  cmp    %rax,%r13
+   0x7f328257f4db <__libc_calloc+155>:  je     0x7f328257f50e <__libc_calloc+206>
+   0x7f328257f4dd <__libc_calloc+157>:  mov    0x173eac(%rip),%rax        # 0x7f32826f3390 <mp_+48>
+   0x7f328257f4e4 <__libc_calloc+164>:  lea    0x0(,%rax,4),%rcx
+[Inferior 1 (process 3597968) detached]
+(base) root@mx-luwu-gpunode-10-13-81-33:/workspace/vllm/code/src/auto_pd_test
+$ NIXL_PLUGIN_DIR=/opt/conda/lib/python3.12/site-packages/.mixl.mesonpy.libs/plugins \
+timeout 30 python3 nixl_ucx_repro.py --backend UCX
+echo "exit=$?"
+[1]+  Killed                  python3 nixl_ucx_repro.py --backend UCX
+2026-11-27 21:00:29 NIXL INFO    _api.py:251 Initialized NIXL agent: 9996f344-a736-4ef2-aab0-e05269c4bd71
+[PASS] agent(backends=[]) created in 0.00s
+[....] calling createBackend('UCX') now
+exit=124
+(base) root@mx-luwu-gpunode-10-13-81-33:/workspace/vllm/code/src/auto_pd_test
+$ strings /opt/conda/lib/python3.12/site-packages/nixl/_bindings.cpython-312-x86_64-linux-gnu.so | grep -iE "NIXL_.*PLUGIN|plugin.*dir" | head
